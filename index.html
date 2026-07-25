@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.0 | 최종 수정: 2026-07-22
-  기준: EmperorBTC 리스크 관리 원칙 (Master Class 08 / Beginner Ch1)
-  이전 버전: archive/Trading_Risk_Calculator_v1.0_2026-07-22.html
-  v2.0 변경점: 레버리지 ≤5배 가이드·경고 / 청산가(근사) 및 '청산 전 손절 도달' 안전검증 /
-               리스크% 가이드(권장 1~3%, 최대 5%) / 방향(Long·Short) 자동 판별 / 권장 최대 레버리지 표시
+  버전: v2.1 | 최종 수정: 2026-07-25
 -->
 <html lang="ko">
 <head>
@@ -45,24 +41,24 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 10px;
+            padding: 4px;
         }
 
         .calculator-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 16px 20px;
+            padding: 10px 14px;
             width: 100%;
             max-width: 490px;
             box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
         }
 
         .title {
-            font-size: 1.2rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 2px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -70,30 +66,24 @@
 
         .btc-icon {
             color: var(--btc-gold);
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 800;
-        }
-
-        .subtitle {
-            font-size: 0.775rem;
-            color: var(--text-sub);
-            margin-bottom: 10px;
         }
 
         .mode-toggle {
             display: flex;
             background-color: #F1ECE1;
             border-radius: 8px;
-            padding: 3px;
-            margin-bottom: 10px;
+            padding: 2px;
+            margin-bottom: 6px;
         }
 
         .mode-btn {
             flex: 1;
-            padding: 6px 10px;
+            padding: 4px 6px;
             border: none;
             background: transparent;
-            font-size: 0.775rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: var(--text-sub);
             border-radius: 6px;
@@ -111,8 +101,8 @@
         .grid-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px 10px;
-            margin-bottom: 10px;
+            gap: 4px 8px;
+            margin-bottom: 6px;
         }
 
         .full-width {
@@ -125,10 +115,10 @@
 
         label {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 3px;
+            margin-bottom: 1px;
         }
 
         input {
@@ -136,9 +126,9 @@
             background-color: var(--input-bg);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 6px 8px;
+            padding: 4px 6px;
             color: var(--text-main);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             outline: none;
             transition: all 0.15s;
@@ -156,24 +146,24 @@
         }
 
         .hint {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             color: var(--text-sub);
-            margin-top: 2px;
-            line-height: 1.3;
+            margin-top: 1px;
+            line-height: 1.2;
         }
 
         .result-box {
             background-color: #FAFAFA;
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 10px 14px;
+            padding: 6px 10px;
         }
 
         .result-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 0;
+            padding: 3px 0;
             border-bottom: 1px dashed var(--border);
         }
 
@@ -182,25 +172,25 @@
         }
 
         .result-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             color: var(--text-sub);
         }
 
         .result-value {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--text-main);
         }
 
         .highlight-green {
             color: var(--accent-green);
-            font-size: 1.05rem;
+            font-size: 0.95rem;
         }
 
         .highlight-navy {
             color: var(--accent-navy);
-            font-size: 1.05rem;
+            font-size: 0.95rem;
         }
 
         .danger {
@@ -209,24 +199,24 @@
 
         .badge {
             display: inline-block;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 700;
-            padding: 1px 7px;
+            padding: 1px 6px;
             border-radius: 999px;
         }
         .badge-long { background: var(--ok-bg); color: var(--accent-green); }
         .badge-short { background: var(--danger-bg); color: var(--accent-burgundy); }
 
         /* 경고 배너 */
-        .alert-area { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .alert-area { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
         .alert {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 600;
-            line-height: 1.4;
+            line-height: 1.3;
             border-radius: 8px;
-            padding: 8px 11px;
+            padding: 5px 8px;
             display: flex;
-            gap: 6px;
+            gap: 5px;
             align-items: flex-start;
         }
         .alert-warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: #92400E; }
@@ -238,7 +228,6 @@
 
 <div class="calculator-card">
     <div class="title"><span class="btc-icon">₿</span> 선물 트레이딩 리스크 & 포지션 계산기</div>
-    <div class="subtitle">EmperorBTC 리스크 원칙 기반 · 레버리지 ≤5배 & 청산 안전검증 자동 계산</div>
 
     <div class="mode-toggle">
         <button id="btnModeLeverage" class="mode-btn active" onclick="setMode('leverage')">🎯 거래소 레버리지 지정 (정수)</button>
@@ -248,30 +237,30 @@
     <div class="grid-inputs">
         <div class="input-group full-width">
             <label for="totalCapital">전체 시드 (계좌 원금)</label>
-            <input type="text" id="totalCapital" value="100,000" oninput="formatAndCalculate(this)">
+            <input type="text" id="totalCapital" value="100,000" inputmode="decimal" pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
         </div>
 
         <div class="input-group">
             <label for="entryPrice">진입 예정가</label>
-            <input type="text" id="entryPrice" value="65,000" oninput="formatAndCalculate(this)">
+            <input type="text" id="entryPrice" value="65,000" inputmode="decimal" pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
         </div>
 
         <div class="input-group">
             <label for="stopLossPrice">손절가 (Stop Loss)</label>
-            <input type="text" id="stopLossPrice" value="63,700" oninput="formatAndCalculate(this)">
+            <input type="text" id="stopLossPrice" value="63,700" inputmode="decimal" pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
             <div class="hint">손절가 &lt; 진입가 → 롱 / &gt; 진입가 → 숏 자동 판별</div>
         </div>
 
         <div class="input-group">
             <label for="riskPercent">1회 허용 리스크 (%)</label>
-            <input type="text" id="riskPercent" value="1" oninput="formatAndCalculate(this)">
-            <div class="hint">권장 1~3% · 최대 5% (초과 시 경고)</div>
+            <input type="text" id="riskPercent" value="1" inputmode="decimal" pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
+            <div class="hint">권장 1~3% · 최대 5%</div>
         </div>
 
         <div class="input-group" id="inputDynamicGroup">
             <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수 (권장 ≤5)</label>
-            <input type="text" id="dynamicInput" value="5" oninput="formatAndCalculate(this)">
-            <div class="hint" id="dynamicHint">EmperorBTC 철칙: 5배 초과 금지</div>
+            <input type="text" id="dynamicInput" value="5" inputmode="decimal" pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
+            <div class="hint" id="dynamicHint">5배 초과 금지</div>
         </div>
     </div>
 
@@ -297,7 +286,7 @@
             <span class="result-value highlight-navy" id="valResultDynamic">10,000</span>
         </div>
         <div class="result-row">
-            <span class="result-label">체결 수량 (Quantity = 포지션 ÷ 진입가)</span>
+            <span class="result-label">체결 수량</span>
             <span class="result-value" id="coinQty">0.7692</span>
         </div>
         <div class="result-row">
@@ -315,7 +304,7 @@
 
 <script>
     let currentMode = 'leverage'; // 'leverage' or 'margin'
-    const MAX_LEV_RULE = 5; // EmperorBTC 철칙: 레버리지 5배 초과 금지
+    const MAX_LEV_RULE = 5;
 
     function setMode(mode) {
         currentMode = mode;
@@ -332,7 +321,7 @@
             lblDynamic.innerText = '거래소 레버리지 배수 (권장 ≤5)';
             dynamicInput.value = '5';
             lblResultDynamic.innerText = '필요 증거금 (Margin)';
-            dynamicHint.innerText = 'EmperorBTC 철칙: 5배 초과 금지';
+            dynamicHint.innerText = '5배 초과 금지';
         } else {
             btnMargin.classList.add('active');
             btnLeverage.classList.remove('active');
@@ -356,7 +345,6 @@
         return parts.join('.');
     }
 
-    // 가격 포맷: 소액 코인은 소수점 표시
     function formatPrice(num) {
         if (isNaN(num) || num <= 0) return '—';
         return formatNum(num, num < 100 ? 2 : 0);
@@ -395,7 +383,6 @@
 
         if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) return;
 
-        // 방향 자동 판별
         const isLong = stopLossPrice < entryPrice;
         const dirEl = document.getElementById('direction');
         dirEl.innerHTML = isLong
@@ -417,11 +404,9 @@
 
         const valResultDynamic = document.getElementById('valResultDynamic');
 
-        // 유효 레버리지(effLeverage) 산출 (모드 공통)
         let effLeverage = 0;
 
         if (currentMode === 'leverage') {
-            // 레버리지 지정 -> 필요 증거금 계산
             effLeverage = dynamicVal;
             if (effLeverage > 0) {
                 const marginRequired = positionValue / effLeverage;
@@ -430,7 +415,6 @@
                 valResultDynamic.innerText = '0';
             }
         } else {
-            // 증거금 지정 -> 필요 레버리지 계산
             const margin = dynamicVal;
             if (margin > 0) {
                 effLeverage = positionValue / margin;
@@ -440,16 +424,13 @@
             }
         }
 
-        // === 청산가(근사) & 안전 레버리지 ===
-        // 근사 청산 거리(%) ≈ 100 / 레버리지  (수수료·유지증거금 제외, 격리 기준)
         const liqPriceEl = document.getElementById('liqPrice');
         const recMaxLevEl = document.getElementById('recMaxLev');
 
-        // 청산 전 손절이 걸리려면: 손절폭% < 100/레버리지  ==>  레버리지 < 100/손절폭%
-        const maxLevByLiq = Math.floor(100 / slPercent); // 청산 안전 최대 레버리지(근사)
+        const maxLevByLiq = Math.floor(100 / slPercent);
         const recommendedMax = Math.max(1, Math.min(MAX_LEV_RULE, maxLevByLiq));
-        recMaxLevEl.innerHTML = recommendedMax + '배 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:600;">'
-            + '(철칙 ≤' + MAX_LEV_RULE + ' · 청산안전 ≤' + maxLevByLiq + ')</span>';
+        recMaxLevEl.innerHTML = recommendedMax + '배 <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">'
+            + '(권장 ≤' + MAX_LEV_RULE + ' · 청산안전 ≤' + maxLevByLiq + ')</span>';
 
         let liqPrice = 0;
         let liqDistPct = 0;
@@ -458,20 +439,17 @@
             liqPrice = isLong
                 ? entryPrice * (1 - 1 / effLeverage)
                 : entryPrice * (1 + 1 / effLeverage);
-            liqPriceEl.innerText = formatPrice(liqPrice) + '  (진입 대비 ' + liqDistPct.toFixed(1) + '%)';
+            liqPriceEl.innerText = formatPrice(liqPrice) + ' (진입 대비 ' + liqDistPct.toFixed(1) + '%)';
         } else {
             liqPriceEl.innerText = '—';
         }
 
-        // === 경고 로직 ===
         const alerts = [];
 
-        // 1) 리스크 % 과도
         if (riskPercent > 5) {
             alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + riskPercent + '% — 과도합니다. 권장 1~3%(최대 5%).' });
         }
 
-        // 2) 청산 전 손절 도달 위험 (가장 치명적)
         const liqUnsafe = effLeverage > 0 && slPercent >= liqDistPct;
         if (liqUnsafe) {
             alerts.push({
@@ -482,7 +460,6 @@
             });
         }
 
-        // 3) EmperorBTC 5배 철칙 초과
         const overRule = effLeverage > MAX_LEV_RULE + 1e-9;
         if (overRule) {
             alerts.push({

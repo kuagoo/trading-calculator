@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.2 (iOS PWA 완전 고침: 줌 현상 복귀 스크립트 + 내장 골드 비트코인 아이콘 적용)
+  버전: v2.4 (증거금 부족·시드 초과 자동 감지 및 레버리지 필요치 안내 엔진 추가)
   최종 수정: 2026-07-26
 -->
 <html lang="ko">
@@ -280,32 +280,38 @@
 <body>
 
     <div class="calculator-card">
-        <div class="title"><span class="btc-icon">₿</span> 선물 포지션 리스크 계산기</div>
+        <div class="title"><span class="btc-icon">₿</span> 선물 포지션 리스크 & 손익비 계산기</div>
 
         <div class="mode-toggle">
-            <button id="btnModeLeverage" class="mode-btn active" onclick="setMode('leverage')">🎯 거래소 레버리지 지정
-                (정수)</button>
+            <button id="btnModeLeverage" class="mode-btn active" onclick="setMode('leverage')">🎯 거래소 레버리지 지정 (정수)</button>
             <button id="btnModeMargin" class="mode-btn" onclick="setMode('margin')">💰 증거금 금액 지정</button>
         </div>
 
         <div class="grid-inputs">
             <div class="input-group full-width">
                 <label for="totalCapital">전체 시드 (계좌 원금)</label>
-                <input type="text" id="totalCapital" value="100,000" inputmode="decimal" pattern="[0-9.,]*"
+                <input type="text" id="totalCapital" value="10,000" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
             <div class="input-group">
                 <label for="entryPrice">진입 예정가</label>
-                <input type="text" id="entryPrice" value="65,000" inputmode="decimal" pattern="[0-9.,]*"
+                <input type="text" id="entryPrice" value="64,425" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
             <div class="input-group">
                 <label for="stopLossPrice">손절가 (Stop Loss)</label>
-                <input type="text" id="stopLossPrice" value="63,700" inputmode="decimal" pattern="[0-9.,]*"
+                <input type="text" id="stopLossPrice" value="64,374" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
-                <div class="hint">손절가 &lt; 진입가 → 롱 / &gt; 진입가 → 숏 자동 판별</div>
+                <div class="hint">손절가 &lt; 진입가 → 롱 / &gt; 진입가 → 숏</div>
+            </div>
+
+            <div class="input-group">
+                <label for="takeProfitPrice">목표가 (Take Profit / TP)</label>
+                <input type="text" id="takeProfitPrice" value="64,511" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="formatAndCalculate(this)">
+                <div class="hint">(선택) 익절가 입력 시 손익비·기대수익 자동계산</div>
             </div>
 
             <div class="input-group">
@@ -315,7 +321,7 @@
                 <div class="hint">권장 1~3% · 최대 5%</div>
             </div>
 
-            <div class="input-group" id="inputDynamicGroup">
+            <div class="input-group full-width" id="inputDynamicGroup">
                 <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수 (권장 ≤5)</label>
                 <input type="text" id="dynamicInput" value="5" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
@@ -329,24 +335,36 @@
                 <span class="result-value" id="direction">—</span>
             </div>
             <div class="result-row">
-                <span class="result-label">최대 허용 손실액 (1회)</span>
-                <span class="result-value danger" id="maxLossAmount">1,000</span>
+                <span class="result-label">계획 손익비 (Risk : Reward)</span>
+                <span class="result-value highlight-green" id="rrRatio" style="font-size:1.05rem;">—</span>
             </div>
             <div class="result-row">
-                <span class="result-label">손절폭 (%)</span>
-                <span class="result-value danger" id="slPercent">-2.00 %</span>
+                <span class="result-label">기대 수익금 (Take Profit PnL)</span>
+                <span class="result-value highlight-green" id="expectedProfit" style="font-size:0.98rem;">—</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">기대 수익률 (ROI)</span>
+                <span class="result-value highlight-navy" id="expectedRoi">—</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">최대 허용 손실액 (1회)</span>
+                <span class="result-value danger" id="maxLossAmount">100</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">손절폭 / 목표폭 (%)</span>
+                <span class="result-value danger" id="slPercent">-0.08 %</span>
             </div>
             <div class="result-row">
                 <span class="result-label">총 포지션 크기 (Position Value)</span>
-                <span class="result-value highlight-green" id="positionValue">50,000</span>
+                <span class="result-value highlight-green" id="positionValue">126,324</span>
             </div>
             <div class="result-row" id="rowOutputDynamic">
                 <span class="result-label" id="lblResultDynamic">필요 증거금 (Margin)</span>
-                <span class="result-value highlight-navy" id="valResultDynamic">10,000</span>
+                <span class="result-value highlight-navy" id="valResultDynamic">25,265</span>
             </div>
             <div class="result-row">
                 <span class="result-label">체결 수량</span>
-                <span class="result-value" id="coinQty">0.7692</span>
+                <span class="result-value" id="coinQty">1.9608</span>
             </div>
             <div class="result-row">
                 <span class="result-label">예상 청산가 (근사치)</span>
@@ -445,6 +463,7 @@
             const riskPercent = parseNum(document.getElementById('riskPercent').value);
             const entryPrice = parseNum(document.getElementById('entryPrice').value);
             const stopLossPrice = parseNum(document.getElementById('stopLossPrice').value);
+            const takeProfitPrice = parseNum(document.getElementById('takeProfitPrice').value);
             const dynamicVal = parseNum(document.getElementById('dynamicInput').value);
             const dynamicInputEl = document.getElementById('dynamicInput');
 
@@ -465,30 +484,79 @@
             const coinQty = positionValue / entryPrice;
 
             document.getElementById('maxLossAmount').innerText = formatNum(Math.round(maxLossAmount));
-            document.getElementById('slPercent').innerText = '-' + slPercent.toFixed(2) + ' %';
             document.getElementById('positionValue').innerText = formatNum(Math.round(positionValue));
             document.getElementById('coinQty').innerText = formatNum(coinQty, 4);
 
+            // 레버리지 / 증거금 계산
             const valResultDynamic = document.getElementById('valResultDynamic');
-
             let effLeverage = 0;
+            let marginRequired = 0;
 
             if (currentMode === 'leverage') {
                 effLeverage = dynamicVal;
                 if (effLeverage > 0) {
-                    const marginRequired = positionValue / effLeverage;
-                    valResultDynamic.innerText = formatNum(Math.round(marginRequired));
-                } else {
-                    valResultDynamic.innerText = '0';
+                    marginRequired = positionValue / effLeverage;
                 }
             } else {
-                const margin = dynamicVal;
-                if (margin > 0) {
-                    effLeverage = positionValue / margin;
-                    valResultDynamic.innerText = effLeverage.toFixed(1) + ' 배';
-                } else {
-                    valResultDynamic.innerText = '0 배';
+                marginRequired = dynamicVal;
+                if (marginRequired > 0) {
+                    effLeverage = positionValue / marginRequired;
                 }
+            }
+
+            const isMarginOverSeed = marginRequired > totalCapital;
+            if (currentMode === 'leverage') {
+                if (isMarginOverSeed) {
+                    valResultDynamic.innerHTML = '<span class="danger">' + formatNum(Math.round(marginRequired)) + ' <span style="font-size:0.7rem;font-weight:700;">(시드 초과 🚨)</span></span>';
+                } else {
+                    valResultDynamic.innerText = formatNum(Math.round(marginRequired));
+                }
+            } else {
+                valResultDynamic.innerText = effLeverage.toFixed(1) + ' 배';
+            }
+
+            // 🎯 익절(TP) 및 손익비(R:R) 계산
+            const rrRatioEl = document.getElementById('rrRatio');
+            const expectedProfitEl = document.getElementById('expectedProfit');
+            const expectedRoiEl = document.getElementById('expectedRoi');
+            const slPercentEl = document.getElementById('slPercent');
+
+            let tpPercent = 0;
+            let rrRatio = 0;
+            let expectedProfit = 0;
+            let isTpValid = false;
+
+            if (takeProfitPrice > 0) {
+                if (isLong && takeProfitPrice > entryPrice) {
+                    tpPercent = (takeProfitPrice - entryPrice) / entryPrice * 100;
+                    isTpValid = true;
+                } else if (!isLong && takeProfitPrice < entryPrice) {
+                    tpPercent = (entryPrice - takeProfitPrice) / entryPrice * 100;
+                    isTpValid = true;
+                }
+
+                if (isTpValid) {
+                    rrRatio = tpPercent / slPercent;
+                    expectedProfit = maxLossAmount * rrRatio;
+                    const accountRoi = (expectedProfit / totalCapital) * 100;
+                    const marginRoi = marginRequired > 0 ? (expectedProfit / marginRequired) * 100 : 0;
+
+                    rrRatioEl.innerHTML = '1 : <b>' + rrRatio.toFixed(2) + '</b>';
+                    expectedProfitEl.innerText = '+' + formatNum(Math.round(expectedProfit));
+                    expectedRoiEl.innerHTML = '<span class="highlight-green">+' + accountRoi.toFixed(2) + '% (시드)</span> · '
+                        + '<span>+' + marginRoi.toFixed(1) + '% (증거금)</span>';
+                    slPercentEl.innerHTML = '<span class="danger">손절 -' + slPercent.toFixed(2) + '%</span> / <span class="highlight-green">익절 +' + tpPercent.toFixed(2) + '%</span>';
+                } else {
+                    rrRatioEl.innerText = '오류 (TP 방향 부적절)';
+                    expectedProfitEl.innerText = '—';
+                    expectedRoiEl.innerText = '—';
+                    slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %';
+                }
+            } else {
+                rrRatioEl.innerText = '—';
+                expectedProfitEl.innerText = '—';
+                expectedRoiEl.innerText = '—';
+                slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %';
             }
 
             const liqPriceEl = document.getElementById('liqPrice');
@@ -513,10 +581,44 @@
 
             const alerts = [];
 
+            // 0) 🚨 시드 초과 증거금 부족 (체결 불가) 감지!
+            if (isMarginOverSeed) {
+                const reqLevForSeed = Math.ceil(positionValue / totalCapital);
+                alerts.push({
+                    type: 'danger', icon: '🚨',
+                    msg: '<b>증거금 부족 (체결 불가)!</b> 필요 증거금(' + formatNum(Math.round(marginRequired)) + ')이 보유 시드(' + formatNum(totalCapital) + ')를 초과합니다. 손절폭(-' + slPercent.toFixed(2) + '%)이 너무 촘촘하여 5배 레버리지로는 1% 리스크($' + formatNum(maxLossAmount) + ')를 채울 원금이 부족합니다. 레버리지를 <b>' + reqLevForSeed + '배 이상</b>으로 올리시거나 포지션을 줄이셔야 합니다.'
+                });
+            }
+
+            // 1) 리스크 경고
             if (riskPercent > 5) {
                 alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + riskPercent + '% — 과도합니다. 권장 1~3%(최대 5%).' });
             }
 
+            // 2) TP 방향 오류 검증
+            if (takeProfitPrice > 0 && !isTpValid) {
+                alerts.push({
+                    type: 'danger', icon: '🚨',
+                    msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 포지션 TP는 진입가(' + formatPrice(entryPrice) + ')보다 높아 야 합니다.' : '숏 포지션 TP는 진입가(' + formatPrice(entryPrice) + ')보다 낮아 야 합니다.')
+                });
+            }
+
+            // 3) 손익비(R:R) 평가 알림
+            if (isTpValid) {
+                if (rrRatio < 1.5) {
+                    alerts.push({
+                        type: 'warn', icon: '⚠️',
+                        msg: '<b>손익비 열세 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 손익비가 1:1.5 미만입니다. 기대수익 대비 손실 위험이 크므로 진입을 재고하세요.'
+                    });
+                } else if (rrRatio >= 2.0) {
+                    alerts.push({
+                        type: 'ok', icon: '🎯',
+                        msg: '<b>우수한 손익비 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 기대수익이 손실의 ' + rrRatio.toFixed(1) + '배에 달하는 고수익/고안전 타점입니다!'
+                    });
+                }
+            }
+
+            // 4) 청산 안전성 검증
             const liqUnsafe = effLeverage > 0 && slPercent >= liqDistPct;
             if (liqUnsafe) {
                 alerts.push({
@@ -527,6 +629,7 @@
                 });
             }
 
+            // 5) 레버리지 규칙 초과
             const overRule = effLeverage > MAX_LEV_RULE + 1e-9;
             if (overRule) {
                 alerts.push({
@@ -537,6 +640,7 @@
                 });
             }
 
+            // 6) 모두 안전할 때
             if (alerts.length === 0 && effLeverage > 0) {
                 alerts.push({ type: 'ok', icon: '✅', msg: '레버리지 · 리스크 · 청산 여유 모두 안전 범위입니다.' });
             }
@@ -544,7 +648,7 @@
             renderAlerts(alerts);
 
             if (currentMode === 'leverage') {
-                dynamicInputEl.classList.toggle('input-danger', overRule || liqUnsafe);
+                dynamicInputEl.classList.toggle('input-danger', overRule || liqUnsafe || isMarginOverSeed);
             } else {
                 dynamicInputEl.classList.remove('input-danger');
             }

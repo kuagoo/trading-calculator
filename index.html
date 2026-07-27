@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.4 (증거금 부족·시드 초과 자동 감지 및 레버리지 필요치 안내 엔진 추가)
-  최종 수정: 2026-07-26
+  버전: v2.5 (모바일 키패드 쉼표/마침표 소수점 자동 감지 및 실시간 소수점 입력 지원)
+  최종 수정: 2026-07-27
 -->
 <html lang="ko">
 
@@ -418,9 +418,56 @@
             calculate();
         }
 
+        function parseAndFormatInput(rawStr) {
+            if (!rawStr) return { formatted: '', numValue: 0 };
+
+            let cleaned = rawStr.toString().trim();
+
+            if (cleaned.includes('.')) {
+                cleaned = cleaned.replace(/,/g, '');
+            } else if (cleaned.includes(',')) {
+                const lastCommaIndex = cleaned.lastIndexOf(',');
+                const beforeLast = cleaned.substring(0, lastCommaIndex);
+                const afterLast = cleaned.substring(lastCommaIndex + 1);
+
+                const isDecimalComma = (
+                    afterLast.length !== 3 ||
+                    (beforeLast.replace(/,/g, '').length > 3 && !beforeLast.includes(','))
+                );
+
+                if (isDecimalComma) {
+                    cleaned = beforeLast.replace(/,/g, '') + '.' + afterLast;
+                } else {
+                    cleaned = cleaned.replace(/,/g, '');
+                }
+            }
+
+            const numValue = parseFloat(cleaned) || 0;
+
+            const parts = cleaned.split('.');
+            let intPart = parts[0];
+            let formattedInt = '';
+
+            if (intPart !== '') {
+                const parsedInt = parseInt(intPart, 10);
+                if (!isNaN(parsedInt)) {
+                    formattedInt = parsedInt.toLocaleString();
+                } else {
+                    formattedInt = intPart;
+                }
+            }
+
+            let formatted = formattedInt;
+            if (parts.length > 1) {
+                formatted += '.' + parts[1];
+            }
+
+            return { formatted, numValue };
+        }
+
         function parseNum(val) {
             if (!val) return 0;
-            return parseFloat(val.toString().replace(/,/g, '')) || 0;
+            return parseAndFormatInput(val.toString()).numValue;
         }
 
         function formatNum(num, decimals = 0) {
@@ -432,17 +479,15 @@
 
         function formatPrice(num) {
             if (isNaN(num) || num <= 0) return '—';
-            return formatNum(num, num < 100 ? 2 : 0);
+            if (num < 1) return formatNum(num, 4);
+            if (num < 100) return formatNum(num, 2);
+            return num % 1 === 0 ? formatNum(num, 0) : formatNum(num, 2);
         }
 
         function formatAndCalculate(inputEl) {
-            if (inputEl.id !== 'riskPercent' && !(currentMode === 'leverage' && inputEl.id === 'dynamicInput')) {
-                let rawValue = inputEl.value.replace(/,/g, '');
-                if (!isNaN(rawValue) && rawValue !== '') {
-                    let formatted = parseNum(rawValue).toLocaleString();
-                    if (rawValue.endsWith('.')) formatted += '.';
-                    inputEl.value = formatted;
-                }
+            if (inputEl && inputEl.value !== undefined) {
+                const res = parseAndFormatInput(inputEl.value);
+                inputEl.value = res.formatted;
             }
             calculate();
         }

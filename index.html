@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.5 (모바일 키패드 쉼표/마침표 소수점 자동 감지 및 실시간 소수점 입력 지원)
+  버전: v2.6 (숫자 편집 시 천 단위 콤마가 마침표로 오변환되는 버그 수정 및 소수점 지원 최적화)
   최종 수정: 2026-07-27
 -->
 <html lang="ko">
@@ -419,49 +419,45 @@
         }
 
         function parseAndFormatInput(rawStr) {
-            if (!rawStr) return { formatted: '', numValue: 0 };
+            if (rawStr === null || rawStr === undefined) return { formatted: '', numValue: 0 };
 
-            let cleaned = rawStr.toString().trim();
+            let str = rawStr.toString().trim();
+            if (str === '') return { formatted: '', numValue: 0 };
 
-            if (cleaned.includes('.')) {
-                cleaned = cleaned.replace(/,/g, '');
-            } else if (cleaned.includes(',')) {
-                const lastCommaIndex = cleaned.lastIndexOf(',');
-                const beforeLast = cleaned.substring(0, lastCommaIndex);
-                const afterLast = cleaned.substring(lastCommaIndex + 1);
+            // 1. If str ends with ',' or starts with '0,', convert that comma to a dot '.'
+            if (str.endsWith(',')) {
+                str = str.slice(0, -1) + '.';
+            } else if (/^0,[0-9]*/.test(str)) {
+                str = str.replace('0,', '0.');
+            }
 
-                const isDecimalComma = (
-                    afterLast.length !== 3 ||
-                    (beforeLast.replace(/,/g, '').length > 3 && !beforeLast.includes(','))
-                );
+            // 2. If str contains a dot '.', process as decimal number
+            if (str.includes('.')) {
+                const parts = str.split('.');
+                const intStr = parts[0].replace(/[^0-9]/g, '');
+                const decStr = parts.slice(1).join('').replace(/[^0-9]/g, '');
 
-                if (isDecimalComma) {
-                    cleaned = beforeLast.replace(/,/g, '') + '.' + afterLast;
+                let formattedInt = '';
+                if (intStr !== '') {
+                    const parsedInt = parseInt(intStr, 10);
+                    formattedInt = !isNaN(parsedInt) ? parsedInt.toLocaleString() : '0';
                 } else {
-                    cleaned = cleaned.replace(/,/g, '');
+                    formattedInt = '0';
                 }
+
+                const formatted = formattedInt + '.' + decStr;
+                const numValue = parseFloat((intStr || '0') + '.' + decStr) || 0;
+                return { formatted, numValue };
             }
 
-            const numValue = parseFloat(cleaned) || 0;
-
-            const parts = cleaned.split('.');
-            let intPart = parts[0];
-            let formattedInt = '';
-
-            if (intPart !== '') {
-                const parsedInt = parseInt(intPart, 10);
-                if (!isNaN(parsedInt)) {
-                    formattedInt = parsedInt.toLocaleString();
-                } else {
-                    formattedInt = intPart;
-                }
+            // 3. Otherwise, process as pure integer with thousand separators
+            const digitsOnly = str.replace(/[^0-9]/g, '');
+            if (digitsOnly === '') {
+                return { formatted: '', numValue: 0 };
             }
 
-            let formatted = formattedInt;
-            if (parts.length > 1) {
-                formatted += '.' + parts[1];
-            }
-
+            const numValue = parseInt(digitsOnly, 10);
+            const formatted = numValue.toLocaleString();
             return { formatted, numValue };
         }
 

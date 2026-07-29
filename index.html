@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.6 (숫자 편집 시 천 단위 콤마가 마침표로 오변환되는 버그 수정 및 소수점 지원 최적화)
-  최종 수정: 2026-07-27
+  버전: v2.7 (거래소 수량 단위 Qty Step 자동 절사 보정 및 실제 체결 포지션 크기 안내엔진 탑재)
+  최종 수정: 2026-07-29
 -->
 <html lang="ko">
 
@@ -321,6 +321,13 @@
                 <div class="hint">권장 1~3% · 최대 5%</div>
             </div>
 
+            <div class="input-group">
+                <label for="minQtyStep">최소 주문 수량 단위 (Qty Step)</label>
+                <input type="text" id="minQtyStep" value="0.001" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="formatAndCalculate(this)">
+                <div class="hint">BTC: 바이낸스 0.001 · 바이비트 0.0001 | 해외선물: 1</div>
+            </div>
+
             <div class="input-group full-width" id="inputDynamicGroup">
                 <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수 (권장 ≤5)</label>
                 <input type="text" id="dynamicInput" value="5" inputmode="decimal" pattern="[0-9.,]*"
@@ -347,7 +354,7 @@
                 <span class="result-value highlight-navy" id="expectedRoi">—</span>
             </div>
             <div class="result-row">
-                <span class="result-label">최대 허용 손실액 (1회)</span>
+                <span class="result-label">실제 허용 손실액 (1회)</span>
                 <span class="result-value danger" id="maxLossAmount">100</span>
             </div>
             <div class="result-row">
@@ -355,7 +362,7 @@
                 <span class="result-value danger" id="slPercent">-0.08 %</span>
             </div>
             <div class="result-row">
-                <span class="result-label">총 포지션 크기 (Position Value)</span>
+                <span class="result-label">거래소 입력 포지션 크기</span>
                 <span class="result-value highlight-green" id="positionValue">126,324</span>
             </div>
             <div class="result-row" id="rowOutputDynamic">
@@ -363,7 +370,7 @@
                 <span class="result-value highlight-navy" id="valResultDynamic">25,265</span>
             </div>
             <div class="result-row">
-                <span class="result-label">체결 수량</span>
+                <span class="result-label">실제 체결 수량</span>
                 <span class="result-value" id="coinQty">1.9608</span>
             </div>
             <div class="result-row">
@@ -507,6 +514,7 @@
             const takeProfitPrice = parseNum(document.getElementById('takeProfitPrice').value);
             const dynamicVal = parseNum(document.getElementById('dynamicInput').value);
             const dynamicInputEl = document.getElementById('dynamicInput');
+            const minQtyStep = parseNum(document.getElementById('minQtyStep').value);
 
             if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) return;
 
@@ -521,12 +529,31 @@
 
             if (slPercent === 0) return;
 
-            const positionValue = maxLossAmount / (slPercent / 100);
-            const coinQty = positionValue / entryPrice;
+            const theoryPositionValue = maxLossAmount / (slPercent / 100);
+            const theoryCoinQty = theoryPositionValue / entryPrice;
 
-            document.getElementById('maxLossAmount').innerText = formatNum(Math.round(maxLossAmount));
-            document.getElementById('positionValue').innerText = formatNum(Math.round(positionValue));
-            document.getElementById('coinQty').innerText = formatNum(coinQty, 4);
+            let actualCoinQty = theoryCoinQty;
+            let actualPositionValue = theoryPositionValue;
+
+            if (minQtyStep > 0) {
+                actualCoinQty = Math.floor(theoryCoinQty / minQtyStep) * minQtyStep;
+                actualPositionValue = actualCoinQty * entryPrice;
+            }
+
+            const actualMaxLoss = actualPositionValue * (slPercent / 100);
+            const actualRiskPercent = (actualMaxLoss / totalCapital) * 100;
+
+            if (minQtyStep > 0 && actualCoinQty > 0 && actualCoinQty < theoryCoinQty) {
+                const decCount = minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0);
+                const qtyDisplay = minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(decCount);
+                document.getElementById('maxLossAmount').innerHTML = formatNum(actualMaxLoss, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPercent.toFixed(2) + '% · 이론 $' + formatNum(Math.round(maxLossAmount)) + ')</span>';
+                document.getElementById('positionValue').innerHTML = formatNum(actualPositionValue, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(이론 $' + formatNum(Math.round(theoryPositionValue)) + ')</span>';
+                document.getElementById('coinQty').innerHTML = qtyDisplay + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(이론 ' + theoryCoinQty.toFixed(4) + ')</span>';
+            } else {
+                document.getElementById('maxLossAmount').innerText = formatNum(Math.round(maxLossAmount));
+                document.getElementById('positionValue').innerText = formatNum(Math.round(theoryPositionValue));
+                document.getElementById('coinQty').innerText = formatNum(theoryCoinQty, 4);
+            }
 
             // 레버리지 / 증거금 계산
             const valResultDynamic = document.getElementById('valResultDynamic');
@@ -536,12 +563,12 @@
             if (currentMode === 'leverage') {
                 effLeverage = dynamicVal;
                 if (effLeverage > 0) {
-                    marginRequired = positionValue / effLeverage;
+                    marginRequired = actualPositionValue / effLeverage;
                 }
             } else {
                 marginRequired = dynamicVal;
                 if (marginRequired > 0) {
-                    effLeverage = positionValue / marginRequired;
+                    effLeverage = actualPositionValue / marginRequired;
                 }
             }
 
@@ -578,7 +605,7 @@
 
                 if (isTpValid) {
                     rrRatio = tpPercent / slPercent;
-                    expectedProfit = maxLossAmount * rrRatio;
+                    expectedProfit = actualMaxLoss * rrRatio;
                     const accountRoi = (expectedProfit / totalCapital) * 100;
                     const marginRoi = marginRequired > 0 ? (expectedProfit / marginRequired) * 100 : 0;
 
@@ -622,12 +649,24 @@
 
             const alerts = [];
 
+            // 거래소 체결 단위 절사 보정 알림
+            if (minQtyStep > 0 && actualCoinQty > 0 && actualCoinQty < theoryCoinQty) {
+                const decCount = minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0);
+                const qtyDisplay = minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(decCount) + ' 수량';
+                alerts.push({
+                    type: 'ok', icon: '💡',
+                    msg: '<b>최소 주문 단위(' + minQtyStep + ') 보정 완료:</b> 주문창에는 <b>'
+                        + formatNum(actualPositionValue, 2) + ' USDT</b> (또는 <b>' + qtyDisplay + '</b>)를 입력하세요. 수수료 및 절사 단위 적용으로 실제 손실 위험은 '
+                        + riskPercent + '%($' + formatNum(maxLossAmount, 2) + ') 대신 <b>' + actualRiskPercent.toFixed(2) + '%($' + formatNum(actualMaxLoss, 2) + ')</b>로 안전하게 소폭 감소되어 체결됩니다.'
+                });
+            }
+
             // 0) 🚨 시드 초과 증거금 부족 (체결 불가) 감지!
             if (isMarginOverSeed) {
-                const reqLevForSeed = Math.ceil(positionValue / totalCapital);
+                const reqLevForSeed = Math.ceil(actualPositionValue / totalCapital);
                 alerts.push({
                     type: 'danger', icon: '🚨',
-                    msg: '<b>증거금 부족 (체결 불가)!</b> 필요 증거금(' + formatNum(Math.round(marginRequired)) + ')이 보유 시드(' + formatNum(totalCapital) + ')를 초과합니다. 손절폭(-' + slPercent.toFixed(2) + '%)이 너무 촘촘하여 5배 레버리지로는 1% 리스크($' + formatNum(maxLossAmount) + ')를 채울 원금이 부족합니다. 레버리지를 <b>' + reqLevForSeed + '배 이상</b>으로 올리시거나 포지션을 줄이셔야 합니다.'
+                    msg: '<b>증거금 부족 (체결 불가)!</b> 필요 증거금(' + formatNum(Math.round(marginRequired)) + ')이 보유 시드(' + formatNum(totalCapital) + ')를 초과합니다. 레버리지를 <b>' + reqLevForSeed + '배 이상</b>으로 올리시거나 포지션을 줄이셔야 합니다.'
                 });
             }
 

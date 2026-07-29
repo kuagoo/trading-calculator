@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.8 (입력란 순서/배치 최적화, 모드별 동적 순서 정렬 및 힌트 텍스트 제거로 상하 잘림 방지)
+  버전: v2.9 (그리드 레이아웃 통합: 전체시드 하단에 레버리지/증거금 & 1회리스크 나란히 배치, Qty Step & 진입가 위치 맞교환)
   최종 수정: 2026-07-29
 -->
 <html lang="ko">
@@ -294,15 +294,15 @@
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group full-width" id="inputDynamicGroup" style="order: 7;">
+            <div class="input-group" id="inputDynamicGroup" style="order: 2;">
                 <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수</label>
                 <input type="text" id="dynamicInput" value="5" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupEntry" style="order: 3;">
-                <label for="entryPrice">진입 예정가</label>
-                <input type="text" id="entryPrice" value="64,425" inputmode="decimal" pattern="[0-9.,]*"
+            <div class="input-group" id="groupRisk" style="order: 3;">
+                <label for="riskPercent">1회 허용 리스크 (%)</label>
+                <input type="text" id="riskPercent" value="1" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
@@ -312,21 +312,21 @@
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupSL" style="order: 5;">
+            <div class="input-group" id="groupEntry" style="order: 5;">
+                <label for="entryPrice">진입 예정가</label>
+                <input type="text" id="entryPrice" value="64,425" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="formatAndCalculate(this)">
+            </div>
+
+            <div class="input-group" id="groupSL" style="order: 6;">
                 <label for="stopLossPrice">손절가 (Stop Loss)</label>
                 <input type="text" id="stopLossPrice" value="64,374" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupTP" style="order: 6;">
+            <div class="input-group" id="groupTP" style="order: 7;">
                 <label for="takeProfitPrice">목표가 (Take Profit / TP)</label>
                 <input type="text" id="takeProfitPrice" value="64,511" inputmode="decimal" pattern="[0-9.,]*"
-                    oninput="formatAndCalculate(this)">
-            </div>
-
-            <div class="input-group full-width" id="groupRisk" style="order: 10;">
-                <label for="riskPercent">1회 허용 리스크 (%)</label>
-                <input type="text" id="riskPercent" value="1" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
         </div>
@@ -400,7 +400,6 @@
             const lblDynamic = document.getElementById('lblDynamic');
             const dynamicInput = document.getElementById('dynamicInput');
             const lblResultDynamic = document.getElementById('lblResultDynamic');
-            const inputDynamicGroup = document.getElementById('inputDynamicGroup');
 
             if (mode === 'leverage') {
                 btnLeverage.classList.add('active');
@@ -408,14 +407,12 @@
                 lblDynamic.innerText = '거래소 레버리지 배수';
                 dynamicInput.value = '5';
                 lblResultDynamic.innerText = '필요 증거금 (Margin)';
-                inputDynamicGroup.style.order = '7';
             } else {
                 btnMargin.classList.add('active');
                 btnLeverage.classList.remove('active');
                 lblDynamic.innerText = '투입 증거금 (원금)';
                 dynamicInput.value = '10,000';
                 lblResultDynamic.innerText = '필요 레버리지 배수';
-                inputDynamicGroup.style.order = '2';
             }
             calculate();
         }

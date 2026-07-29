@@ -8,6 +8,8 @@
                        추가로 PWA 노치/상태바 대응(safe-area-inset) 및 100dvh 적용.
   v2.9.2 (2026-07-29): 1회 허용 리스크(%)만 남기고 모든 입력값 공란 시작(placeholder만 표시), 초기 결과값 '—',
                        모드 토글 시에도 레버리지/증거금 칸 공란 유지. '최소 주문 단위 보정 완료' 💡 알림 제거.
+  v2.9.3 (2026-07-29): 입력 순서 손절가↔목표가 교환(거래소처럼 TP 먼저). 기대수익률(ROI) '(증거금)' 줄바꿈 방지 —
+                       값 글씨 축소(0.8rem)+nowrap, '시드/증거금' 라벨 소형화·괄호 제거로 한 줄에 수렴.
 -->
 <html lang="ko">
 
@@ -330,13 +332,13 @@
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupSL" style="order: 6;">
+            <div class="input-group" id="groupSL" style="order: 7;">
                 <label for="stopLossPrice">손절가 (Stop Loss)</label>
                 <input type="text" id="stopLossPrice" value="" placeholder="손절가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupTP" style="order: 7;">
+            <div class="input-group" id="groupTP" style="order: 6;">
                 <label for="takeProfitPrice">목표가 (Take Profit / TP)</label>
                 <input type="text" id="takeProfitPrice" value="" placeholder="목표가(TP)" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
@@ -358,7 +360,7 @@
             </div>
             <div class="result-row">
                 <span class="result-label">기대 수익률 (ROI)</span>
-                <span class="result-value highlight-navy" id="expectedRoi">—</span>
+                <span class="result-value highlight-navy" id="expectedRoi" style="font-size:0.8rem;white-space:nowrap;">—</span>
             </div>
             <div class="result-row">
                 <span class="result-label">실제 허용 손실액 (1회)</span>
@@ -615,8 +617,10 @@
 
                     rrRatioEl.innerHTML = '1 : <b>' + rrRatio.toFixed(2) + '</b>';
                     expectedProfitEl.innerText = '+' + formatNum(Math.round(expectedProfit));
-                    expectedRoiEl.innerHTML = '<span class="highlight-green">+' + accountRoi.toFixed(2) + '% (시드)</span> · '
-                        + '<span>+' + marginRoi.toFixed(1) + '% (증거금)</span>';
+                    expectedRoiEl.innerHTML = '<span class="highlight-green">+' + accountRoi.toFixed(2) + '%</span>'
+                        + '<span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 시드</span> · '
+                        + '<span>+' + marginRoi.toFixed(1) + '%</span>'
+                        + '<span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 증거금</span>';
                     slPercentEl.innerHTML = '<span class="danger">손절 -' + slPercent.toFixed(2) + '%</span> / <span class="highlight-green">익절 +' + tpPercent.toFixed(2) + '%</span>';
                 } else {
                     rrRatioEl.innerText = '오류 (TP 방향 부적절)';

@@ -12,7 +12,9 @@
                        값 글씨 축소(0.8rem)+nowrap, '시드/증거금' 라벨 소형화·괄호 제거로 한 줄에 수렴.
   v2.10  (2026-07-30): '진입 게이트(Pre-Trade Gate)' 통합 — 진입 전 체크리스트(3티어). 음주·서킷·거래소수량일치·
                        계산기위험(리스크>2%/레버>5x/증거금초과/청산위험/TP오류)=원천차단, 애매·FOMO·도취=강한경고.
-                       계산기 수량을 게이트에 띄워 거래소 값과 대조 강제(#6 사고 방지). 통과 시 저널용 요약 복사.
+                       계산기 수량을 게이트에 띄워 거래소 값과 대조 강제(#6 사고 방지).
+  v2.11  (2026-07-30): 체크박스 무반응 버그 수정 — 전역 input 규칙(-webkit-appearance:none 등)이 체크박스에도
+                       적용돼 iOS에서 토글 안 되던 문제를 input:not([type=checkbox])로 제외. 저널 요약 복사 기능 제거.
 -->
 <html lang="ko">
 
@@ -159,8 +161,8 @@
             margin-bottom: 2px;
         }
 
-        /* iOS 사파리 자동 확대 방지: font-size 16px 강제 */
-        input {
+        /* iOS 사파리 자동 확대 방지: font-size 16px 강제. ⚠️ 체크박스 제외(제외 안 하면 -webkit-appearance:none이 체크박스를 무력화) */
+        input:not([type=checkbox]) {
             width: 100%;
             background-color: var(--input-bg);
             border: 1px solid var(--border);
@@ -175,7 +177,7 @@
             -webkit-appearance: none;
         }
 
-        input:focus {
+        input:not([type=checkbox]):focus {
             background-color: #FFFFFF;
             border-color: var(--accent-navy);
             box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.1);
@@ -1024,45 +1026,17 @@
         function approveEntry() {
             const go = document.getElementById('gateGo');
             if (go.disabled) return;
-            const gs = gateState;
             const now = new Date();
             const pad = n => String(n).padStart(2, '0');
-            const date = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
             const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
-            const dir = gs.isLong ? '롱' : '숏';
-            const summary = '[' + date + ' ' + time + '] ' + dir + ' · 진입 ' + formatPrice(gs.entry)
-                + ' / SL ' + formatPrice(gs.sl) + ' / TP ' + formatPrice(gs.tp)
-                + ' · 수량 ' + gs.qtyText + ' · 리스크 ' + gs.riskPct.toFixed(2) + '% · R:R 1:' + gs.rr.toFixed(2);
-            window._gateSummary = summary;
             document.getElementById('gateStampWrap').innerHTML =
-                '<div class="gate-stamp">✅ 진입 승인 · ' + time
-                + '<br><span style="font-size:0.7rem;font-weight:600;color:var(--text-sub);">' + summary + '</span></div>'
-                + '<div class="gate-actions"><button type="button" onclick="copySummary(this)">📋 저널용 요약 복사</button></div>';
-        }
-
-        function copySummary(btn) {
-            const s = window._gateSummary || '';
-            const done = () => { if (btn) { const t = btn.textContent; btn.textContent = '복사됨 ✓'; setTimeout(() => btn.textContent = t, 1200); } };
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(s).then(done).catch(() => fallbackCopy(s, done));
-            } else {
-                fallbackCopy(s, done);
-            }
-        }
-
-        function fallbackCopy(s, done) {
-            const ta = document.createElement('textarea');
-            ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0';
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            try { document.execCommand('copy'); if (done) done(); } catch (e) { }
-            document.body.removeChild(ta);
+                '<div class="gate-stamp">✅ 진입 승인 · ' + time + '</div>';
         }
 
         function resetGate() {
             ['gk_sober', 'gk_circuit', 'gk_qtymatch', 'gw_clear', 'gw_fomo', 'gw_euphoria', 'gs_htf', 'gs_edge', 'gs_conf', 'gs_ifthen', 'gs_struct', 'gs_fix']
                 .forEach(id => { document.getElementById(id).checked = false; });
             document.getElementById('gateStampWrap').innerHTML = '';
-            window._gateSummary = '';
             updateGate();
         }
 

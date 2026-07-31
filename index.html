@@ -15,6 +15,8 @@
                        계산기 수량을 게이트에 띄워 거래소 값과 대조 강제(#6 사고 방지).
   v2.11  (2026-07-30): 체크박스 무반응 버그 수정 — 전역 input 규칙(-webkit-appearance:none 등)이 체크박스에도
                        적용돼 iOS에서 토글 안 되던 문제를 input:not([type=checkbox])로 제외. 저널 요약 복사 기능 제거.
+  v2.12  (2026-07-31): 이론 수량 < 최소 주문 단위일 때 '체결 불가'를 명확히 표시 + 해결책 안내(리스크% 올리기·손절
+                       좁은 셋업·시드 증액, "레버리지로는 안 풀림" 명시). 게이트도 이 경우 하드 차단(qtyValid).
 -->
 <html lang="ko">
 
@@ -602,7 +604,7 @@
         const MAX_RISK_RULE = 2;  // 진입 게이트: 실제 리스크 상한(%)
 
         // 진입 게이트가 참조하는 계산기 산출값
-        let gateState = { inputsComplete: false, riskPct: 0, lev: 0, marginOver: false, liqUnsafe: false, tpValid: false, rr: 0, qtyText: '', notionalText: '', isLong: true, entry: 0, sl: 0, tp: 0 };
+        let gateState = { inputsComplete: false, qtyValid: true, riskPct: 0, lev: 0, marginOver: false, liqUnsafe: false, tpValid: false, rr: 0, qtyText: '', notionalText: '', isLong: true, entry: 0, sl: 0, tp: 0 };
         function gateSetIncomplete() { gateState.inputsComplete = false; updateGate(); }
 
         // 아이폰 사파리 키보드 닫힐 때 원래 100% 화면 위치로 강제 원복(Reset Scroll & Zoom)하는 스크립트
@@ -755,7 +757,15 @@
             const actualMaxLoss = actualPositionValue * (slPercent / 100);
             const actualRiskPercent = (actualMaxLoss / totalCapital) * 100;
 
-            if (minQtyStep > 0 && actualCoinQty > 0 && actualCoinQty < theoryCoinQty) {
+            // 이론 수량이 최소 주문 단위보다 작으면 → 내림 시 0 → 체결 불가
+            const qtyBelowMin = minQtyStep > 0 && actualCoinQty <= 0 && theoryCoinQty > 0;
+            const minRiskForStep = totalCapital > 0 ? (minQtyStep * entryPrice) * (slPercent / 100) / totalCapital * 100 : 0;
+
+            if (qtyBelowMin) {
+                document.getElementById('maxLossAmount').innerText = formatNum(Math.round(maxLossAmount));
+                document.getElementById('positionValue').innerHTML = '<span class="danger">체결 불가 (최소 단위 미달)</span>';
+                document.getElementById('coinQty').innerHTML = '<span class="danger">0</span> <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(이론 ' + theoryCoinQty.toFixed(5) + ' &lt; 최소 ' + minQtyStep + ')</span>';
+            } else if (minQtyStep > 0 && actualCoinQty > 0 && actualCoinQty < theoryCoinQty) {
                 const decCount = minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0);
                 const qtyDisplay = minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(decCount);
                 document.getElementById('maxLossAmount').innerHTML = formatNum(actualMaxLoss, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPercent.toFixed(2) + '% · 이론 $' + formatNum(Math.round(maxLossAmount)) + ')</span>';
@@ -872,6 +882,14 @@
                 });
             }
 
+            // 0.5) 🚫 최소 주문 단위 미달 (체결 불가) — 뭘 해야 하는지 안내
+            if (qtyBelowMin) {
+                alerts.push({
+                    type: 'danger', icon: '🚫',
+                    msg: '<b>체결 불가 — 포지션이 최소 주문 단위(' + minQtyStep + ')보다 작습니다.</b> 이 손절폭·리스크 ' + riskPercent + '%면 <b>' + theoryCoinQty.toFixed(5) + ' BTC</b>가 필요한데 최소는 ' + minQtyStep + '입니다.<br>➡️ <b>해결:</b> ① 리스크를 <b>≈' + minRiskForStep.toFixed(2) + '%</b>로 올리면 최소 ' + minQtyStep + ' 체결(손실 약 $' + (minRiskForStep / 100 * totalCapital).toFixed(2) + ') · ② 손절폭이 더 좁은 셋업 · ③ 시드 증액.<br>⚠️ <b>레버리지를 올려도 이 문제는 안 풀립니다</b> — 레버리지는 필요 증거금만 줄일 뿐, 포지션 크기·리스크는 그대로예요.'
+                });
+            }
+
             // 1) 리스크 경고
             if (riskPercent > 5) {
                 alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + riskPercent + '% — 과도합니다. 권장 1~3%(최대 5%).' });
@@ -941,6 +959,7 @@
                 : theoryCoinQty.toFixed(4) + ' BTC';
             gateState = {
                 inputsComplete: (entryPrice > 0 && stopLossPrice > 0 && totalCapital > 0 && takeProfitPrice > 0),
+                qtyValid: !qtyBelowMin,
                 riskPct: actualRiskPercent,
                 lev: effLeverage,
                 marginOver: isMarginOverSeed,
@@ -992,6 +1011,7 @@
             if (!circuit) reasons.push('서킷브레이커 미확인');
             if (!qtymatch) reasons.push('거래소 수량 일치 미확인');
             if (ready) {
+                if (!gs.qtyValid) reasons.push('포지션 최소 단위 미달 (체결 불가)');
                 if (!riskOk) reasons.push('리스크 ' + gs.riskPct.toFixed(2) + '% > 2%');
                 if (!levOk) reasons.push('레버리지 ' + gs.lev.toFixed(1) + 'x > 5x');
                 if (!marginOk) reasons.push('증거금 시드 초과');

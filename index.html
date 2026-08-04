@@ -678,13 +678,39 @@
             el.addEventListener('blur', () => { window.scrollTo(0, 0); document.body.scrollTop = 0; });
         });
 
+        // 공용 입력 필드(모드 전환 시 값이 섞이지 않도록 모드별로 따로 보관)
+        const SHARED_FIELDS = ['totalCapital', 'riskPercent', 'entryPrice', 'takeProfitPrice', 'stopLossPrice'];
+        const modeState = { futures: {}, crypto: {} };
+
+        function saveModeState(mode) {
+            const s = {};
+            SHARED_FIELDS.forEach(id => s[id] = document.getElementById(id).value);
+            modeState[mode] = s;
+        }
+        function loadModeState(mode) {
+            const s = modeState[mode] || {};
+            SHARED_FIELDS.forEach(id => {
+                document.getElementById(id).value = (s[id] !== undefined) ? s[id] : (id === 'riskPercent' ? '1' : '');
+            });
+        }
+        function clearAllResults() {
+            ['rrRatio', 'expectedProfit', 'expectedRoi', 'maxLossAmount', 'direction',
+                'futStopDist', 'futContracts', 'futRiskPerC', 'futNotional', 'futMargin',
+                'slPercent', 'positionValue', 'valResultDynamic', 'coinQty', 'liqPrice', 'recMaxLev']
+                .forEach(id => { const e = document.getElementById(id); if (e) e.innerText = '—'; });
+            document.getElementById('alertArea').innerHTML = '';
+        }
+
         function setMode(mode) {
+            if (mode === currentMode) return;
+            saveModeState(currentMode);   // 현재 모드 값 보관
             currentMode = mode;
             const card = document.getElementById('card');
             card.classList.toggle('mode-futures', mode === 'futures');
             card.classList.toggle('mode-crypto', mode === 'crypto');
             document.getElementById('btnModeFutures').classList.toggle('active', mode === 'futures');
             document.getElementById('btnModeCrypto').classList.toggle('active', mode === 'crypto');
+            loadModeState(mode);          // 전환 모드 값 복원(없으면 공란)
             calculate();
         }
 
@@ -819,9 +845,7 @@
             const fm = document.getElementById('futMargin');
 
             if (entry <= 0 || sl <= 0 || account <= 0 || pv <= 0) {
-                [rr, ep, eroi, mla, fsd, fc, frc, fn, fm].forEach(e => e.innerText = '—');
-                document.getElementById('direction').innerText = '—';
-                gateSetIncomplete(); return;
+                clearAllResults(); gateSetIncomplete(); return;
             }
 
             const isLong = sl < entry;
@@ -945,14 +969,14 @@
             const dynamicInputEl = document.getElementById('dynamicInput');
             const minQtyStep = parseNum(document.getElementById('minQtyStep').value);
 
-            if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) { gateSetIncomplete(); return; }
+            if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) { clearAllResults(); gateSetIncomplete(); return; }
 
             const isLong = stopLossPrice < entryPrice;
             setDirection(isLong);
 
             const maxLossAmount = totalCapital * (riskPercent / 100);
             const slPercent = Math.abs(entryPrice - stopLossPrice) / entryPrice * 100;
-            if (slPercent === 0) { gateSetIncomplete(); return; }
+            if (slPercent === 0) { clearAllResults(); gateSetIncomplete(); return; }
 
             const theoryPositionValue = maxLossAmount / (slPercent / 100);
             const theoryCoinQty = theoryPositionValue / entryPrice;
@@ -1160,7 +1184,16 @@
             ['gk_sober', 'gk_circuit', 'gk_qtymatch', 'gw_clear', 'gw_fomo', 'gw_euphoria', 'gs_htf', 'gs_edge', 'gs_conf', 'gs_ifthen', 'gs_struct', 'gs_fix']
                 .forEach(id => { document.getElementById(id).checked = false; });
             document.getElementById('gateStampWrap').innerHTML = '';
-            updateGate();
+            // 위 숫자 입력값도 초기화 (현재 모드) — 리스크%만 기본값 1로
+            SHARED_FIELDS.forEach(id => { document.getElementById(id).value = (id === 'riskPercent' ? '1' : ''); });
+            if (currentMode === 'futures') {
+                document.getElementById('futMarginPerContract').value = '';
+            } else {
+                document.getElementById('dynamicInput').value = '';
+                document.getElementById('minQtyStep').value = '';
+            }
+            modeState[currentMode] = {};
+            calculate();
         }
 
         // 초기화: 선물 기본(골드·마이크로 MGC)

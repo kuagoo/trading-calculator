@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v2.9 (그리드 레이아웃 통합: 전체시드 하단에 레버리지/증거금 & 1회리스크 나란히 배치, Qty Step & 진입가 위치 맞교환)
-  최종 수정: 2026-07-29
-  v2.9.1 (2026-07-29): 화면 상단 잘림 수정 — 카드가 뷰포트보다 길 때 flex 수직중앙(align-items:center)이
-                       상단을 스크롤 불가 영역으로 밀어 잘라내던 문제를 flex-start + 카드 margin:auto 로 교체.
-                       추가로 PWA 노치/상태바 대응(safe-area-inset) 및 100dvh 적용.
-  v2.9.2 (2026-07-29): 1회 허용 리스크(%)만 남기고 모든 입력값 공란 시작(placeholder만 표시), 초기 결과값 '—',
-                       모드 토글 시에도 레버리지/증거금 칸 공란 유지. '최소 주문 단위 보정 완료' 💡 알림 제거.
-  v2.9.3 (2026-07-29): 입력 순서 손절가↔목표가 교환(거래소처럼 TP 먼저). 기대수익률(ROI) '(증거금)' 줄바꿈 방지 —
-                       값 글씨 축소(0.8rem)+nowrap, '시드/증거금' 라벨 소형화·괄호 제거로 한 줄에 수렴.
-  v2.10  (2026-07-30): '진입 게이트(Pre-Trade Gate)' 통합 — 진입 전 체크리스트(3티어). 음주·서킷·거래소수량일치·
-                       계산기위험(리스크>2%/레버>5x/증거금초과/청산위험/TP오류)=원천차단, 애매·FOMO·도취=강한경고.
-                       계산기 수량을 게이트에 띄워 거래소 값과 대조 강제(#6 사고 방지).
-  v2.11  (2026-07-30): 체크박스 무반응 버그 수정 — 전역 input 규칙(-webkit-appearance:none 등)이 체크박스에도
-                       적용돼 iOS에서 토글 안 되던 문제를 input:not([type=checkbox])로 제외. 저널 요약 복사 기능 제거.
-  v2.12  (2026-07-31): 이론 수량 < 최소 주문 단위일 때 '체결 불가'를 명확히 표시 + 해결책 안내(리스크% 올리기·손절
-                       좁은 셋업·시드 증액, "레버리지로는 안 풀림" 명시). 게이트도 이 경우 하드 차단(qtyValid).
+  버전: v3.0 (2026-08-04) — 선물(Futures) 모드 신설
+    · 모드 토글을 [📈 선물] / [🪙 크립토(레버리지)] 로 개편. 기존 '증거금 금액 지정' 모드 제거.
+    · 선물 모드 = 계약(contract) 기반 사이징: 계약 수 = 내림( 리스크$ ÷ (손절폭 × 점가치) ). 정수 계약, 레버리지 개념 없음.
+    · 상품 × 사이즈 2축 드롭다운(골드·나스닥·S&P·크루드 × 마이크로·이미니·스탠다드) → 점가치 자동+수정가능. 없는 조합/기타는 직접 입력.
+    · 계약당 증거금(선택) 입력 시 필요증거금 vs 시드 체크. 1계약도 못 잡으면 '체결 불가' + 해결책(리스크%↑·손절 좁게·시드↑).
+    · 게이트 자동체크를 모드별로: 선물=계약≥1·리스크≤2%·증거금≤시드·TP방향 / 크립토=레버리지≤5x·청산위험·… (기존 유지).
+  이전 이력: v2.9~v2.12 (크립토 레버리지/증거금 계산, 진입 게이트 통합, 최소 단위 체결불가 안내 등)
 -->
 <html lang="ko">
 
@@ -25,14 +16,9 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-    <!-- 아이폰 PWA 홈 화면 설정 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="리스크계산기">
-
-    <!-- 내장 고화질 비트코인 앱 아이콘 -->
-    <link rel="apple-touch-icon" href="data:image/png;base64,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">
-    <link rel="icon" href="data:image/png;base64,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">
 
     <title>리스크 계산기</title>
     <style>
@@ -73,13 +59,11 @@
             color: var(--text-main);
             display: flex;
             justify-content: center;
-            /* align-items:center 는 카드가 화면보다 길 때 상단을 잘라먹음 → flex-start + 카드 margin:auto 로 교체 */
             align-items: flex-start;
             min-height: 100vh;
             min-height: 100dvh;
             margin: 0;
             padding: 8px;
-            /* PWA(홈화면 앱)에서 노치/상태바 밑으로 가리는 것 방지 */
             padding-top: max(8px, env(safe-area-inset-top));
             padding-bottom: max(8px, env(safe-area-inset-bottom));
         }
@@ -92,7 +76,6 @@
             width: 100%;
             max-width: 480px;
             box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
-            /* 짧으면 세로 중앙, 화면보다 길면 위부터 전부 보이도록(상단 잘림 방지) */
             margin: auto;
         }
 
@@ -163,7 +146,6 @@
             margin-bottom: 2px;
         }
 
-        /* iOS 사파리 자동 확대 방지: font-size 16px 강제. ⚠️ 체크박스 제외(제외 안 하면 -webkit-appearance:none이 체크박스를 무력화) */
         input:not([type=checkbox]) {
             width: 100%;
             background-color: var(--input-bg);
@@ -172,14 +154,26 @@
             padding: 6px 8px;
             color: var(--text-main);
             font-size: 16px !important;
-            /* 사파리 줌 방지 절대 규칙 */
             font-weight: 600;
             outline: none;
             transition: all 0.15s;
             -webkit-appearance: none;
         }
 
-        input:not([type=checkbox]):focus {
+        .grid-inputs select {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        input:not([type=checkbox]):focus,
+        .grid-inputs select:focus {
             background-color: #FFFFFF;
             border-color: var(--accent-navy);
             box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.1);
@@ -196,6 +190,10 @@
             margin-top: 2px;
             line-height: 1.2;
         }
+
+        /* 모드별 입력/결과 표시 */
+        .calculator-card.mode-crypto .fut-only { display: none; }
+        .calculator-card.mode-futures .crypto-only { display: none; }
 
         .result-box {
             background-color: #FAFAFA;
@@ -455,54 +453,86 @@
 
 <body>
 
-    <div class="calculator-card">
-        <div class="title"><span class="btc-icon">₿</span> 선물 포지션 리스크 & 손익비 계산기</div>
+    <div class="calculator-card mode-futures" id="card">
+        <div class="title"><span class="btc-icon">📊</span> 포지션 리스크 & 손익비 계산기</div>
 
         <div class="mode-toggle">
-            <button id="btnModeLeverage" class="mode-btn active" onclick="setMode('leverage')">🎯 레버리지 지정</button>
-            <button id="btnModeMargin" class="mode-btn" onclick="setMode('margin')">💰 증거금 금액 지정</button>
+            <button id="btnModeFutures" class="mode-btn active" onclick="setMode('futures')">📈 선물 (Futures)</button>
+            <button id="btnModeCrypto" class="mode-btn" onclick="setMode('crypto')">🪙 크립토 (레버리지)</button>
         </div>
 
         <div class="grid-inputs">
-            <div class="input-group full-width" id="groupCapital" style="order: 1;">
-                <label for="totalCapital">전체 시드 (계좌 원금)</label>
-                <input type="text" id="totalCapital" value="" placeholder="예: 100" inputmode="decimal" pattern="[0-9.,]*"
+            <div class="input-group full-width" style="order: 1;">
+                <label for="totalCapital">전체 시드 (계좌 원금 $)</label>
+                <input type="text" id="totalCapital" value="" placeholder="예: 3,000" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="inputDynamicGroup" style="order: 2;">
-                <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수</label>
-                <input type="text" id="dynamicInput" value="" placeholder="예: 5" inputmode="decimal" pattern="[0-9.,]*"
-                    oninput="formatAndCalculate(this)">
-            </div>
-
-            <div class="input-group" id="groupRisk" style="order: 3;">
+            <div class="input-group" style="order: 2;">
                 <label for="riskPercent">1회 허용 리스크 (%)</label>
                 <input type="text" id="riskPercent" value="1" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupStep" style="order: 4;">
+            <!-- ===== 선물 전용 ===== -->
+            <div class="input-group fut-only" style="order: 3;">
+                <label for="futProduct">상품 (Product)</label>
+                <select id="futProduct" onchange="onProductChange()">
+                    <option value="gold">골드 (Gold)</option>
+                    <option value="nasdaq">나스닥100 (Nasdaq)</option>
+                    <option value="sp">S&amp;P 500</option>
+                    <option value="crude">WTI 원유 (Crude)</option>
+                    <option value="custom">기타 / 직접입력</option>
+                </select>
+            </div>
+
+            <div class="input-group fut-only" style="order: 4;">
+                <label for="futSize">사이즈 (Size)</label>
+                <select id="futSize" onchange="onSizeChange()"></select>
+            </div>
+
+            <div class="input-group fut-only" style="order: 5;">
+                <label for="futPointValue">점가치 ($ / 1.0 가격이동)</label>
+                <input type="text" id="futPointValue" value="" placeholder="자동" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="calculate()">
+                <div class="hint" id="futSpecHint">—</div>
+            </div>
+
+            <div class="input-group fut-only" style="order: 6;">
+                <label for="futMarginPerContract">계약당 증거금 ($, 선택)</label>
+                <input type="text" id="futMarginPerContract" value="" placeholder="예: 500" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="formatAndCalculate(this)">
+            </div>
+
+            <!-- ===== 크립토 전용 ===== -->
+            <div class="input-group crypto-only" style="order: 3;">
+                <label id="lblDynamic" for="dynamicInput">거래소 레버리지 배수</label>
+                <input type="text" id="dynamicInput" value="" placeholder="예: 5" inputmode="decimal" pattern="[0-9.,]*"
+                    oninput="formatAndCalculate(this)">
+            </div>
+
+            <div class="input-group crypto-only" style="order: 4;">
                 <label for="minQtyStep">최소 주문 수량 단위 (Qty Step)</label>
                 <input type="text" id="minQtyStep" value="" placeholder="예: 0.001" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupEntry" style="order: 5;">
+            <!-- ===== 공통: 진입/TP/SL ===== -->
+            <div class="input-group" style="order: 7;">
                 <label for="entryPrice">진입 예정가</label>
                 <input type="text" id="entryPrice" value="" placeholder="진입 예정가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupSL" style="order: 7;">
-                <label for="stopLossPrice">손절가 (Stop Loss)</label>
-                <input type="text" id="stopLossPrice" value="" placeholder="손절가" inputmode="decimal" pattern="[0-9.,]*"
+            <div class="input-group" style="order: 8;">
+                <label for="takeProfitPrice">목표가 (Take Profit / TP)</label>
+                <input type="text" id="takeProfitPrice" value="" placeholder="목표가(TP)" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
 
-            <div class="input-group" id="groupTP" style="order: 6;">
-                <label for="takeProfitPrice">목표가 (Take Profit / TP)</label>
-                <input type="text" id="takeProfitPrice" value="" placeholder="목표가(TP)" inputmode="decimal" pattern="[0-9.,]*"
+            <div class="input-group" style="order: 9;">
+                <label for="stopLossPrice">손절가 (Stop Loss)</label>
+                <input type="text" id="stopLossPrice" value="" placeholder="손절가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
         </div>
@@ -528,29 +558,57 @@
                 <span class="result-label">실제 허용 손실액 (1회)</span>
                 <span class="result-value danger" id="maxLossAmount">—</span>
             </div>
-            <div class="result-row">
-                <span class="result-label">손절폭 / 목표폭 (%)</span>
-                <span class="result-value danger" id="slPercent">—</span>
+
+            <!-- ===== 선물 결과 ===== -->
+            <div class="fut-only" id="futuresResults">
+                <div class="result-row">
+                    <span class="result-label">손절폭 (포인트 · 틱)</span>
+                    <span class="result-value danger" id="futStopDist">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">계약 수 (Contracts)</span>
+                    <span class="result-value highlight-green" id="futContracts" style="font-size:1.1rem;">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">계약당 리스크</span>
+                    <span class="result-value" id="futRiskPerC">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">명목 가치 (Notional)</span>
+                    <span class="result-value" id="futNotional">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">필요 증거금 (선택)</span>
+                    <span class="result-value highlight-navy" id="futMargin">—</span>
+                </div>
             </div>
-            <div class="result-row">
-                <span class="result-label">거래소 입력 포지션 크기</span>
-                <span class="result-value highlight-green" id="positionValue">—</span>
-            </div>
-            <div class="result-row" id="rowOutputDynamic">
-                <span class="result-label" id="lblResultDynamic">필요 증거금 (Margin)</span>
-                <span class="result-value highlight-navy" id="valResultDynamic">—</span>
-            </div>
-            <div class="result-row">
-                <span class="result-label">실제 체결 수량</span>
-                <span class="result-value" id="coinQty">—</span>
-            </div>
-            <div class="result-row">
-                <span class="result-label">예상 청산가 (근사치)</span>
-                <span class="result-value danger" id="liqPrice">—</span>
-            </div>
-            <div class="result-row">
-                <span class="result-label">권장 최대 레버리지 (안전)</span>
-                <span class="result-value highlight-navy" id="recMaxLev">—</span>
+
+            <!-- ===== 크립토 결과 ===== -->
+            <div class="crypto-only" id="cryptoResults">
+                <div class="result-row">
+                    <span class="result-label">손절폭 / 목표폭 (%)</span>
+                    <span class="result-value danger" id="slPercent">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">거래소 입력 포지션 크기</span>
+                    <span class="result-value highlight-green" id="positionValue">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label" id="lblResultDynamic">필요 증거금 (Margin)</span>
+                    <span class="result-value highlight-navy" id="valResultDynamic">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">실제 체결 수량</span>
+                    <span class="result-value" id="coinQty">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">예상 청산가 (근사치)</span>
+                    <span class="result-value danger" id="liqPrice">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">권장 최대 레버리지 (안전)</span>
+                    <span class="result-value highlight-navy" id="recMaxLev">—</span>
+                </div>
             </div>
         </div>
 
@@ -558,7 +616,7 @@
 
         <div class="gate">
             <div class="gate-title">🚦 진입 게이트 (Pre-Trade Gate)</div>
-            <div class="gate-qty" id="gateQty">계산기를 먼저 채우세요 (진입가·SL·TP·시드·레버리지)</div>
+            <div class="gate-qty" id="gateQty">계산기를 먼저 채우세요</div>
 
             <div class="gate-group gate-hard">
                 <div class="gate-group-label">① 하드 스톱 — 하나라도 실패 시 진입 금지</div>
@@ -566,9 +624,10 @@
                 <label class="gate-item"><input type="checkbox" id="gk_circuit" onchange="updateGate()"><span>🛑 <b>서킷브레이커 통과</b> — 오늘 손실·연속 손절 한도 미도달</span></label>
                 <label class="gate-item"><input type="checkbox" id="gk_qtymatch" onchange="updateGate()"><span>🎯 <b>거래소 주문창 수량이 위 계산값과 일치</b>함을 눈으로 확인</span></label>
                 <div class="gate-item auto"><span>🧮 리스크 ≤ 2%</span><span class="gate-auto-mark" id="ga_risk">—</span></div>
-                <div class="gate-item auto"><span>🧮 레버리지 ≤ 5x</span><span class="gate-auto-mark" id="ga_lev">—</span></div>
-                <div class="gate-item auto"><span>🧮 증거금 ≤ 시드 (체결 가능)</span><span class="gate-auto-mark" id="ga_margin">—</span></div>
-                <div class="gate-item auto"><span>🧮 손절 전 청산위험 없음</span><span class="gate-auto-mark" id="ga_liq">—</span></div>
+                <div class="gate-item auto fut-only"><span>🧮 계약 ≥ 1 (체결 가능)</span><span class="gate-auto-mark" id="ga_contracts">—</span></div>
+                <div class="gate-item auto crypto-only"><span>🧮 레버리지 ≤ 5x</span><span class="gate-auto-mark" id="ga_lev">—</span></div>
+                <div class="gate-item auto"><span>🧮 증거금 ≤ 시드</span><span class="gate-auto-mark" id="ga_margin">—</span></div>
+                <div class="gate-item auto crypto-only"><span>🧮 손절 전 청산위험 없음</span><span class="gate-auto-mark" id="ga_liq">—</span></div>
                 <div class="gate-item auto"><span>🧮 TP 방향 정상</span><span class="gate-auto-mark" id="ga_tp">—</span></div>
             </div>
 
@@ -599,93 +658,104 @@
     </div>
 
     <script>
-        let currentMode = 'leverage';
+        let currentMode = 'futures';
         const MAX_LEV_RULE = 5;
-        const MAX_RISK_RULE = 2;  // 진입 게이트: 실제 리스크 상한(%)
+        const MAX_RISK_RULE = 2;
+        let futTick = 0.10;   // 현재 선물 종목의 최소 틱
 
-        // 진입 게이트가 참조하는 계산기 산출값
-        let gateState = { inputsComplete: false, qtyValid: true, riskPct: 0, lev: 0, marginOver: false, liqUnsafe: false, tpValid: false, rr: 0, qtyText: '', notionalText: '', isLong: true, entry: 0, sl: 0, tp: 0 };
+        // 선물 계약 스펙: 상품 → [사이즈키, 라벨, 점가치($/1.0이동), 틱]
+        const FUT_SPECS = {
+            gold:   [['micro', '마이크로 MGC (10oz)', 10, 0.10], ['standard', '스탠다드 GC (100oz)', 100, 0.10]],
+            nasdaq: [['micro', '마이크로 MNQ', 2, 0.25], ['emini', '이미니 NQ', 20, 0.25]],
+            sp:     [['micro', '마이크로 MES', 5, 0.25], ['emini', '이미니 ES', 50, 0.25]],
+            crude:  [['micro', '마이크로 MCL (100bbl)', 100, 0.01], ['emini', '이미니 QM (500bbl)', 500, 0.025], ['standard', '스탠다드 CL (1000bbl)', 1000, 0.01]],
+            custom: []
+        };
+
+        // 게이트 참조 상태
+        let gateState = { mode: 'futures', inputsComplete: false, qtyValid: true, riskPct: 0, lev: 0, marginOver: false, marginEntered: false, liqUnsafe: false, tpValid: false, rr: 0, qtyText: '', notionalText: '', isLong: true, entry: 0, sl: 0, tp: 0 };
         function gateSetIncomplete() { gateState.inputsComplete = false; updateGate(); }
 
-        // 아이폰 사파리 키보드 닫힐 때 원래 100% 화면 위치로 강제 원복(Reset Scroll & Zoom)하는 스크립트
         document.querySelectorAll('.grid-inputs input').forEach(el => {
-            el.addEventListener('blur', () => {
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-            });
+            el.addEventListener('blur', () => { window.scrollTo(0, 0); document.body.scrollTop = 0; });
         });
 
         function setMode(mode) {
             currentMode = mode;
-            const btnLeverage = document.getElementById('btnModeLeverage');
-            const btnMargin = document.getElementById('btnModeMargin');
-            const lblDynamic = document.getElementById('lblDynamic');
-            const dynamicInput = document.getElementById('dynamicInput');
-            const lblResultDynamic = document.getElementById('lblResultDynamic');
+            const card = document.getElementById('card');
+            card.classList.toggle('mode-futures', mode === 'futures');
+            card.classList.toggle('mode-crypto', mode === 'crypto');
+            document.getElementById('btnModeFutures').classList.toggle('active', mode === 'futures');
+            document.getElementById('btnModeCrypto').classList.toggle('active', mode === 'crypto');
+            calculate();
+        }
 
-            if (mode === 'leverage') {
-                btnLeverage.classList.add('active');
-                btnMargin.classList.remove('active');
-                lblDynamic.innerText = '거래소 레버리지 배수';
-                dynamicInput.value = '';
-                lblResultDynamic.innerText = '필요 증거금 (Margin)';
-            } else {
-                btnMargin.classList.add('active');
-                btnLeverage.classList.remove('active');
-                lblDynamic.innerText = '투입 증거금 (원금)';
-                dynamicInput.value = '';
-                lblResultDynamic.innerText = '필요 레버리지 배수';
+        function onProductChange() {
+            const p = document.getElementById('futProduct').value;
+            const sizeSel = document.getElementById('futSize');
+            const pvInput = document.getElementById('futPointValue');
+            const specs = FUT_SPECS[p] || [];
+            sizeSel.innerHTML = '';
+            if (specs.length === 0) {
+                sizeSel.innerHTML = '<option value="">—</option>';
+                sizeSel.disabled = true;
+                pvInput.value = '';
+                futTick = 0;
+                document.getElementById('futSpecHint').textContent = '점가치를 직접 입력하세요 ($/1.0 가격 이동)';
+                calculate();
+                return;
             }
+            sizeSel.disabled = false;
+            specs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s[0]; opt.textContent = s[1];
+                sizeSel.appendChild(opt);
+            });
+            sizeSel.selectedIndex = 0;
+            onSizeChange();
+        }
+
+        function onSizeChange() {
+            const p = document.getElementById('futProduct').value;
+            const sz = document.getElementById('futSize').value;
+            const specs = FUT_SPECS[p] || [];
+            const s = specs.find(x => x[0] === sz);
+            if (!s) { calculate(); return; }
+            const pv = s[2], tick = s[3];
+            document.getElementById('futPointValue').value = pv;
+            futTick = tick;
+            const tickDollar = Math.round(pv * tick * 100) / 100;
+            document.getElementById('futSpecHint').textContent =
+                s[1] + ' · 1.0 이동 = $' + pv + ' · 1틱(' + tick + ') = $' + tickDollar;
             calculate();
         }
 
         function parseAndFormatInput(rawStr) {
             if (rawStr === null || rawStr === undefined) return { formatted: '', numValue: 0 };
-
             let str = rawStr.toString().trim();
             if (str === '') return { formatted: '', numValue: 0 };
-
-            // 1. If str ends with ',' or starts with '0,', convert that comma to a dot '.'
-            if (str.endsWith(',')) {
-                str = str.slice(0, -1) + '.';
-            } else if (/^0,[0-9]*/.test(str)) {
-                str = str.replace('0,', '0.');
-            }
-
-            // 2. If str contains a dot '.', process as decimal number
+            if (str.endsWith(',')) { str = str.slice(0, -1) + '.'; }
+            else if (/^0,[0-9]*/.test(str)) { str = str.replace('0,', '0.'); }
             if (str.includes('.')) {
                 const parts = str.split('.');
                 const intStr = parts[0].replace(/[^0-9]/g, '');
                 const decStr = parts.slice(1).join('').replace(/[^0-9]/g, '');
-
                 let formattedInt = '';
                 if (intStr !== '') {
                     const parsedInt = parseInt(intStr, 10);
                     formattedInt = !isNaN(parsedInt) ? parsedInt.toLocaleString() : '0';
-                } else {
-                    formattedInt = '0';
-                }
-
+                } else { formattedInt = '0'; }
                 const formatted = formattedInt + '.' + decStr;
                 const numValue = parseFloat((intStr || '0') + '.' + decStr) || 0;
                 return { formatted, numValue };
             }
-
-            // 3. Otherwise, process as pure integer with thousand separators
             const digitsOnly = str.replace(/[^0-9]/g, '');
-            if (digitsOnly === '') {
-                return { formatted: '', numValue: 0 };
-            }
-
+            if (digitsOnly === '') return { formatted: '', numValue: 0 };
             const numValue = parseInt(digitsOnly, 10);
-            const formatted = numValue.toLocaleString();
-            return { formatted, numValue };
+            return { formatted: numValue.toLocaleString(), numValue };
         }
 
-        function parseNum(val) {
-            if (!val) return 0;
-            return parseAndFormatInput(val.toString()).numValue;
-        }
+        function parseNum(val) { if (!val) return 0; return parseAndFormatInput(val.toString()).numValue; }
 
         function formatNum(num, decimals = 0) {
             if (isNaN(num)) return '0';
@@ -703,8 +773,7 @@
 
         function formatAndCalculate(inputEl) {
             if (inputEl && inputEl.value !== undefined) {
-                const res = parseAndFormatInput(inputEl.value);
-                inputEl.value = res.formatted;
+                inputEl.value = parseAndFormatInput(inputEl.value).formatted;
             }
             calculate();
         }
@@ -720,7 +789,155 @@
             });
         }
 
+        function setDirection(isLong) {
+            document.getElementById('direction').innerHTML = isLong
+                ? '<span class="badge badge-long">▲ 롱 (Long)</span>'
+                : '<span class="badge badge-short">▼ 숏 (Short)</span>';
+        }
+
         function calculate() {
+            if (currentMode === 'crypto') calcCrypto();
+            else calcFutures();
+        }
+
+        // =================== 선물(Futures) 모드 ===================
+        function calcFutures() {
+            const account = parseNum(document.getElementById('totalCapital').value);
+            const risk = parseNum(document.getElementById('riskPercent').value);
+            const entry = parseNum(document.getElementById('entryPrice').value);
+            const sl = parseNum(document.getElementById('stopLossPrice').value);
+            const tp = parseNum(document.getElementById('takeProfitPrice').value);
+            const pv = parseNum(document.getElementById('futPointValue').value);
+            const marginPerC = parseNum(document.getElementById('futMarginPerContract').value);
+
+            const rr = document.getElementById('rrRatio');
+            const ep = document.getElementById('expectedProfit');
+            const eroi = document.getElementById('expectedRoi');
+            const mla = document.getElementById('maxLossAmount');
+            const fsd = document.getElementById('futStopDist');
+            const fc = document.getElementById('futContracts');
+            const frc = document.getElementById('futRiskPerC');
+            const fn = document.getElementById('futNotional');
+            const fm = document.getElementById('futMargin');
+
+            if (entry <= 0 || sl <= 0 || account <= 0 || pv <= 0) {
+                [rr, ep, eroi, mla, fsd, fc, frc, fn, fm].forEach(e => e.innerText = '—');
+                document.getElementById('direction').innerText = '—';
+                gateSetIncomplete(); return;
+            }
+
+            const isLong = sl < entry;
+            setDirection(isLong);
+
+            const stopDist = Math.abs(entry - sl);
+            if (stopDist === 0) { gateSetIncomplete(); return; }
+
+            const riskDollar = account * (risk / 100);
+            const riskPerContract = stopDist * pv;
+            const contractsExact = riskDollar / riskPerContract;
+            const contracts = Math.floor(contractsExact);
+            const belowMin = contracts < 1;
+            const minRiskPct = (riskPerContract / account) * 100;
+
+            const actualRisk = contracts * riskPerContract;
+            const actualRiskPct = (actualRisk / account) * 100;
+            const notional = contracts * pv * entry;
+            const totalMargin = marginPerC > 0 ? contracts * marginPerC : 0;
+            const stopTicks = futTick > 0 ? stopDist / futTick : 0;
+            const slPct = (stopDist / entry) * 100;
+
+            // 손절폭
+            fsd.innerHTML = formatNum(stopDist, futTick && futTick < 1 ? 2 : 1) + ' pt'
+                + (stopTicks > 0 ? ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + Math.round(stopTicks) + '틱 · ' + slPct.toFixed(2) + '%)</span>'
+                    : ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + slPct.toFixed(2) + '%)</span>');
+
+            // 계약 수 & 손실액
+            if (belowMin) {
+                fc.innerHTML = '<span class="danger">0 계약 (체결 불가)</span>';
+                mla.innerText = '—';
+                frc.innerText = '$' + formatNum(riskPerContract, 2);
+                fn.innerText = '—';
+            } else {
+                fc.innerText = contracts + ' 계약';
+                mla.innerHTML = '$' + formatNum(actualRisk, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPct.toFixed(2) + '% · 예산 $' + formatNum(riskDollar, 2) + ')</span>';
+                frc.innerText = '$' + formatNum(riskPerContract, 2);
+                fn.innerText = '$' + formatNum(notional, 0);
+            }
+
+            // 필요 증거금
+            if (marginPerC > 0 && !belowMin) {
+                const over = totalMargin > account;
+                fm.innerHTML = over
+                    ? '<span class="danger">$' + formatNum(totalMargin, 0) + ' (시드 초과 🚨)</span>'
+                    : '$' + formatNum(totalMargin, 0) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(계약 ' + contracts + ' × $' + formatNum(marginPerC, 0) + ')</span>';
+            } else {
+                fm.innerText = marginPerC > 0 ? '—' : '(입력 시 표시)';
+            }
+
+            // R:R / 기대수익 / ROI
+            let isTpValid = false, rrRatio = 0, expectedProfit = 0, tpPct = 0;
+            if (tp > 0) {
+                if (isLong && tp > entry) { tpPct = (tp - entry) / entry * 100; isTpValid = true; }
+                else if (!isLong && tp < entry) { tpPct = (entry - tp) / entry * 100; isTpValid = true; }
+                if (isTpValid) {
+                    rrRatio = Math.abs(tp - entry) / stopDist;
+                    expectedProfit = contracts * Math.abs(tp - entry) * pv;
+                    const roiSeed = (expectedProfit / account) * 100;
+                    rr.innerHTML = '1 : <b>' + rrRatio.toFixed(2) + '</b>';
+                    ep.innerText = belowMin ? '—' : '+$' + formatNum(expectedProfit, 2);
+                    if (belowMin) { eroi.innerText = '—'; }
+                    else {
+                        let roiHtml = '<span class="highlight-green">+' + roiSeed.toFixed(2) + '%</span><span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 시드</span>';
+                        if (totalMargin > 0) { roiHtml += ' · <span>+' + ((expectedProfit / totalMargin) * 100).toFixed(1) + '%</span><span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 증거금</span>'; }
+                        eroi.innerHTML = roiHtml;
+                    }
+                } else { rr.innerText = '오류 (TP 방향 부적절)'; ep.innerText = '—'; eroi.innerText = '—'; }
+            } else { rr.innerText = '—'; ep.innerText = '—'; eroi.innerText = '—'; }
+
+            // 알림
+            const alerts = [];
+            if (belowMin) {
+                alerts.push({
+                    type: 'danger', icon: '🚫',
+                    msg: '<b>체결 불가 — 1계약도 못 잡습니다.</b> 손절폭 ' + formatNum(stopDist, 2) + 'pt = 계약당 $' + formatNum(riskPerContract, 2) + '인데, 리스크 ' + risk + '% 예산은 $' + formatNum(riskDollar, 2) + ' → <b>' + contractsExact.toFixed(2) + '계약</b>.<br>➡️ <b>해결:</b> ① 리스크를 <b>≈' + minRiskPct.toFixed(2) + '%</b>로(1계약 손실 $' + formatNum(riskPerContract, 2) + ') · ② 손절폭이 더 좁은 셋업 · ③ 시드 증액.<br>⚠️ 선물은 <b>1계약이 최소</b>라 이보다 작게는 불가능해요.'
+                });
+            }
+            if (marginPerC > 0 && !belowMin && totalMargin > account) {
+                alerts.push({ type: 'danger', icon: '🚨', msg: '<b>증거금 부족!</b> 필요 증거금(계약 ' + contracts + ' × $' + formatNum(marginPerC, 0) + ' = $' + formatNum(totalMargin, 0) + ')이 시드($' + formatNum(account, 0) + ')를 초과합니다. 계약을 줄이거나 시드를 늘리세요.' });
+            }
+            if (risk > 5) alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + risk + '% — 과도합니다. 권장 1~3%(최대 5%).' });
+            if (tp > 0 && !isTpValid) alerts.push({ type: 'danger', icon: '🚨', msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 TP는 진입가보다 높아야' : '숏 TP는 진입가보다 낮아야') + ' 합니다.' });
+            if (isTpValid) {
+                if (rrRatio < 1.5) alerts.push({ type: 'warn', icon: '⚠️', msg: '<b>손익비 열세 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 1:1.5 미만. 진입 재고.' });
+                else if (rrRatio >= 2.0) alerts.push({ type: 'ok', icon: '🎯', msg: '<b>우수한 손익비 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 기대수익이 손실의 ' + rrRatio.toFixed(1) + '배!' });
+            }
+            if (alerts.length === 0 && !belowMin) alerts.push({ type: 'ok', icon: '✅', msg: '계약 ' + contracts + '개 · 실제 리스크 ' + actualRiskPct.toFixed(2) + '% — 안전 범위입니다.' });
+            renderAlerts(alerts);
+
+            document.getElementById('futPointValue').classList.remove('input-danger');
+            document.getElementById('stopLossPrice').classList.toggle('input-danger', belowMin);
+
+            // 게이트 상태
+            gateState = {
+                mode: 'futures',
+                inputsComplete: (entry > 0 && sl > 0 && account > 0 && tp > 0 && pv > 0),
+                qtyValid: !belowMin,
+                riskPct: actualRiskPct,
+                lev: 0,
+                marginEntered: marginPerC > 0,
+                marginOver: (marginPerC > 0 && totalMargin > account),
+                liqUnsafe: false,
+                tpValid: isTpValid,
+                rr: rrRatio,
+                qtyText: (belowMin ? '0 계약 (체결 불가)' : contracts + ' 계약'),
+                notionalText: (belowMin ? '—' : '$' + formatNum(notional, 0)),
+                isLong: isLong, entry: entry, sl: sl, tp: tp
+            };
+            updateGate();
+        }
+
+        // =================== 크립토(레버리지) 모드 ===================
+        function calcCrypto() {
             const totalCapital = parseNum(document.getElementById('totalCapital').value);
             const riskPercent = parseNum(document.getElementById('riskPercent').value);
             const entryPrice = parseNum(document.getElementById('entryPrice').value);
@@ -733,38 +950,29 @@
             if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) { gateSetIncomplete(); return; }
 
             const isLong = stopLossPrice < entryPrice;
-            const dirEl = document.getElementById('direction');
-            dirEl.innerHTML = isLong
-                ? '<span class="badge badge-long">▲ 롱 (Long)</span>'
-                : '<span class="badge badge-short">▼ 숏 (Short)</span>';
+            setDirection(isLong);
 
             const maxLossAmount = totalCapital * (riskPercent / 100);
             const slPercent = Math.abs(entryPrice - stopLossPrice) / entryPrice * 100;
-
             if (slPercent === 0) { gateSetIncomplete(); return; }
 
             const theoryPositionValue = maxLossAmount / (slPercent / 100);
             const theoryCoinQty = theoryPositionValue / entryPrice;
-
             let actualCoinQty = theoryCoinQty;
             let actualPositionValue = theoryPositionValue;
-
             if (minQtyStep > 0) {
                 actualCoinQty = Math.floor(theoryCoinQty / minQtyStep) * minQtyStep;
                 actualPositionValue = actualCoinQty * entryPrice;
             }
-
             const actualMaxLoss = actualPositionValue * (slPercent / 100);
             const actualRiskPercent = (actualMaxLoss / totalCapital) * 100;
-
-            // 이론 수량이 최소 주문 단위보다 작으면 → 내림 시 0 → 체결 불가
             const qtyBelowMin = minQtyStep > 0 && actualCoinQty <= 0 && theoryCoinQty > 0;
             const minRiskForStep = totalCapital > 0 ? (minQtyStep * entryPrice) * (slPercent / 100) / totalCapital * 100 : 0;
 
             if (qtyBelowMin) {
                 document.getElementById('maxLossAmount').innerText = formatNum(Math.round(maxLossAmount));
                 document.getElementById('positionValue').innerHTML = '<span class="danger">체결 불가 (최소 단위 미달)</span>';
-                document.getElementById('coinQty').innerHTML = '<span class="danger">0</span> <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(이론 ' + theoryCoinQty.toFixed(5) + ' &lt; 최소 ' + minQtyStep + ')</span>';
+                document.getElementById('coinQty').innerHTML = '<span class="danger">0</span> <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(이론 ' + theoryCoinQty.toFixed(5) + ' < 최소 ' + minQtyStep + ')</span>';
             } else if (minQtyStep > 0 && actualCoinQty > 0 && actualCoinQty < theoryCoinQty) {
                 const decCount = minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0);
                 const qtyDisplay = minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(decCount);
@@ -777,60 +985,33 @@
                 document.getElementById('coinQty').innerText = formatNum(theoryCoinQty, 4);
             }
 
-            // 레버리지 / 증거금 계산
             const valResultDynamic = document.getElementById('valResultDynamic');
-            let effLeverage = 0;
+            let effLeverage = dynamicVal;
             let marginRequired = 0;
-
-            if (currentMode === 'leverage') {
-                effLeverage = dynamicVal;
-                if (effLeverage > 0) {
-                    marginRequired = actualPositionValue / effLeverage;
-                }
-            } else {
-                marginRequired = dynamicVal;
-                if (marginRequired > 0) {
-                    effLeverage = actualPositionValue / marginRequired;
-                }
-            }
+            if (effLeverage > 0) marginRequired = actualPositionValue / effLeverage;
+            document.getElementById('lblResultDynamic').innerText = '필요 증거금 (Margin)';
 
             const isMarginOverSeed = marginRequired > totalCapital;
-            if (currentMode === 'leverage') {
-                if (isMarginOverSeed) {
-                    valResultDynamic.innerHTML = '<span class="danger">' + formatNum(Math.round(marginRequired)) + ' <span style="font-size:0.7rem;font-weight:700;">(시드 초과 🚨)</span></span>';
-                } else {
-                    valResultDynamic.innerText = formatNum(Math.round(marginRequired));
-                }
+            if (isMarginOverSeed) {
+                valResultDynamic.innerHTML = '<span class="danger">' + formatNum(Math.round(marginRequired)) + ' <span style="font-size:0.7rem;font-weight:700;">(시드 초과 🚨)</span></span>';
             } else {
-                valResultDynamic.innerText = effLeverage.toFixed(1) + ' 배';
+                valResultDynamic.innerText = marginRequired > 0 ? formatNum(Math.round(marginRequired)) : '—';
             }
 
-            // 🎯 익절(TP) 및 손익비(R:R) 계산
             const rrRatioEl = document.getElementById('rrRatio');
             const expectedProfitEl = document.getElementById('expectedProfit');
             const expectedRoiEl = document.getElementById('expectedRoi');
             const slPercentEl = document.getElementById('slPercent');
-
-            let tpPercent = 0;
-            let rrRatio = 0;
-            let expectedProfit = 0;
-            let isTpValid = false;
+            let tpPercent = 0, rrRatio = 0, expectedProfit = 0, isTpValid = false;
 
             if (takeProfitPrice > 0) {
-                if (isLong && takeProfitPrice > entryPrice) {
-                    tpPercent = (takeProfitPrice - entryPrice) / entryPrice * 100;
-                    isTpValid = true;
-                } else if (!isLong && takeProfitPrice < entryPrice) {
-                    tpPercent = (entryPrice - takeProfitPrice) / entryPrice * 100;
-                    isTpValid = true;
-                }
-
+                if (isLong && takeProfitPrice > entryPrice) { tpPercent = (takeProfitPrice - entryPrice) / entryPrice * 100; isTpValid = true; }
+                else if (!isLong && takeProfitPrice < entryPrice) { tpPercent = (entryPrice - takeProfitPrice) / entryPrice * 100; isTpValid = true; }
                 if (isTpValid) {
                     rrRatio = tpPercent / slPercent;
                     expectedProfit = actualMaxLoss * rrRatio;
                     const accountRoi = (expectedProfit / totalCapital) * 100;
                     const marginRoi = marginRequired > 0 ? (expectedProfit / marginRequired) * 100 : 0;
-
                     rrRatioEl.innerHTML = '1 : <b>' + rrRatio.toFixed(2) + '</b>';
                     expectedProfitEl.innerText = '+' + formatNum(Math.round(expectedProfit));
                     expectedRoiEl.innerHTML = '<span class="highlight-green">+' + accountRoi.toFixed(2) + '%</span>'
@@ -838,168 +1019,94 @@
                         + '<span>+' + marginRoi.toFixed(1) + '%</span>'
                         + '<span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 증거금</span>';
                     slPercentEl.innerHTML = '<span class="danger">손절 -' + slPercent.toFixed(2) + '%</span> / <span class="highlight-green">익절 +' + tpPercent.toFixed(2) + '%</span>';
-                } else {
-                    rrRatioEl.innerText = '오류 (TP 방향 부적절)';
-                    expectedProfitEl.innerText = '—';
-                    expectedRoiEl.innerText = '—';
-                    slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %';
-                }
-            } else {
-                rrRatioEl.innerText = '—';
-                expectedProfitEl.innerText = '—';
-                expectedRoiEl.innerText = '—';
-                slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %';
-            }
+                } else { rrRatioEl.innerText = '오류 (TP 방향 부적절)'; expectedProfitEl.innerText = '—'; expectedRoiEl.innerText = '—'; slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %'; }
+            } else { rrRatioEl.innerText = '—'; expectedProfitEl.innerText = '—'; expectedRoiEl.innerText = '—'; slPercentEl.innerText = '-' + slPercent.toFixed(2) + ' %'; }
 
             const liqPriceEl = document.getElementById('liqPrice');
             const recMaxLevEl = document.getElementById('recMaxLev');
-
             const maxLevByLiq = Math.floor(100 / slPercent);
             const recommendedMax = Math.max(1, Math.min(MAX_LEV_RULE, maxLevByLiq));
-            recMaxLevEl.innerHTML = recommendedMax + '배 <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">'
-                + '(권장 ≤' + MAX_LEV_RULE + ' · 청산안전 ≤' + maxLevByLiq + ')</span>';
+            recMaxLevEl.innerHTML = recommendedMax + '배 <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(권장 ≤' + MAX_LEV_RULE + ' · 청산안전 ≤' + maxLevByLiq + ')</span>';
 
-            let liqPrice = 0;
             let liqDistPct = 0;
             if (effLeverage > 0) {
                 liqDistPct = 100 / effLeverage;
-                liqPrice = isLong
-                    ? entryPrice * (1 - 1 / effLeverage)
-                    : entryPrice * (1 + 1 / effLeverage);
+                const liqPrice = isLong ? entryPrice * (1 - 1 / effLeverage) : entryPrice * (1 + 1 / effLeverage);
                 liqPriceEl.innerText = formatPrice(liqPrice) + ' (진입 대비 ' + liqDistPct.toFixed(1) + '%)';
-            } else {
-                liqPriceEl.innerText = '—';
-            }
+            } else { liqPriceEl.innerText = '—'; }
 
             const alerts = [];
-
-            // 0) 🚨 시드 초과 증거금 부족 (체결 불가) 감지!
             if (isMarginOverSeed) {
                 const reqLevForSeed = Math.ceil(actualPositionValue / totalCapital);
-                alerts.push({
-                    type: 'danger', icon: '🚨',
-                    msg: '<b>증거금 부족 (체결 불가)!</b> 필요 증거금(' + formatNum(Math.round(marginRequired)) + ')이 보유 시드(' + formatNum(totalCapital) + ')를 초과합니다. 레버리지를 <b>' + reqLevForSeed + '배 이상</b>으로 올리시거나 포지션을 줄이셔야 합니다.'
-                });
+                alerts.push({ type: 'danger', icon: '🚨', msg: '<b>증거금 부족 (체결 불가)!</b> 필요 증거금(' + formatNum(Math.round(marginRequired)) + ')이 보유 시드(' + formatNum(totalCapital) + ')를 초과합니다. 레버리지를 <b>' + reqLevForSeed + '배 이상</b>으로 올리거나 포지션을 줄이세요.' });
             }
-
-            // 0.5) 🚫 최소 주문 단위 미달 (체결 불가) — 뭘 해야 하는지 안내
             if (qtyBelowMin) {
-                alerts.push({
-                    type: 'danger', icon: '🚫',
-                    msg: '<b>체결 불가 — 포지션이 최소 주문 단위(' + minQtyStep + ')보다 작습니다.</b> 이 손절폭·리스크 ' + riskPercent + '%면 <b>' + theoryCoinQty.toFixed(5) + ' BTC</b>가 필요한데 최소는 ' + minQtyStep + '입니다.<br>➡️ <b>해결:</b> ① 리스크를 <b>≈' + minRiskForStep.toFixed(2) + '%</b>로 올리면 최소 ' + minQtyStep + ' 체결(손실 약 $' + (minRiskForStep / 100 * totalCapital).toFixed(2) + ') · ② 손절폭이 더 좁은 셋업 · ③ 시드 증액.<br>⚠️ <b>레버리지를 올려도 이 문제는 안 풀립니다</b> — 레버리지는 필요 증거금만 줄일 뿐, 포지션 크기·리스크는 그대로예요.'
-                });
+                alerts.push({ type: 'danger', icon: '🚫', msg: '<b>체결 불가 — 포지션이 최소 주문 단위(' + minQtyStep + ')보다 작습니다.</b> 리스크 ' + riskPercent + '%면 <b>' + theoryCoinQty.toFixed(5) + '</b>가 필요한데 최소는 ' + minQtyStep + '.<br>➡️ <b>해결:</b> ① 리스크를 <b>≈' + minRiskForStep.toFixed(2) + '%</b>로 · ② 손절폭이 더 좁은 셋업 · ③ 시드 증액.<br>⚠️ <b>레버리지를 올려도 안 풀립니다.</b>' });
             }
-
-            // 1) 리스크 경고
-            if (riskPercent > 5) {
-                alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + riskPercent + '% — 과도합니다. 권장 1~3%(최대 5%).' });
-            }
-
-            // 2) TP 방향 오류 검증
-            if (takeProfitPrice > 0 && !isTpValid) {
-                alerts.push({
-                    type: 'danger', icon: '🚨',
-                    msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 포지션 TP는 진입가(' + formatPrice(entryPrice) + ')보다 높아 야 합니다.' : '숏 포지션 TP는 진입가(' + formatPrice(entryPrice) + ')보다 낮아 야 합니다.')
-                });
-            }
-
-            // 3) 손익비(R:R) 평가 알림
+            if (riskPercent > 5) alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + riskPercent + '% — 과도합니다. 권장 1~3%(최대 5%).' });
+            if (takeProfitPrice > 0 && !isTpValid) alerts.push({ type: 'danger', icon: '🚨', msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 TP는 진입가보다 높아야' : '숏 TP는 진입가보다 낮아야') + ' 합니다.' });
             if (isTpValid) {
-                if (rrRatio < 1.5) {
-                    alerts.push({
-                        type: 'warn', icon: '⚠️',
-                        msg: '<b>손익비 열세 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 손익비가 1:1.5 미만입니다. 기대수익 대비 손실 위험이 크므로 진입을 재고하세요.'
-                    });
-                } else if (rrRatio >= 2.0) {
-                    alerts.push({
-                        type: 'ok', icon: '🎯',
-                        msg: '<b>우수한 손익비 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 기대수익이 손실의 ' + rrRatio.toFixed(1) + '배에 달하는 고수익/고안전 타점입니다!'
-                    });
-                }
+                if (rrRatio < 1.5) alerts.push({ type: 'warn', icon: '⚠️', msg: '<b>손익비 열세 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 1:1.5 미만. 진입 재고.' });
+                else if (rrRatio >= 2.0) alerts.push({ type: 'ok', icon: '🎯', msg: '<b>우수한 손익비 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 손실의 ' + rrRatio.toFixed(1) + '배!' });
             }
-
-            // 4) 청산 안전성 검증
             const liqUnsafe = effLeverage > 0 && slPercent >= liqDistPct;
-            if (liqUnsafe) {
-                alerts.push({
-                    type: 'danger', icon: '🚨',
-                    msg: '<b>손절 도달 전 청산 위험!</b> 청산 ≈ 진입 대비 ' + liqDistPct.toFixed(1)
-                        + '% 인데 손절폭이 ' + slPercent.toFixed(1) + '%. 레버리지를 <b>'
-                        + maxLevByLiq + '배 이하</b>로 낮추세요.'
-                });
-            }
-
-            // 5) 레버리지 규칙 초과
+            if (liqUnsafe) alerts.push({ type: 'danger', icon: '🚨', msg: '<b>손절 도달 전 청산 위험!</b> 청산 ≈ 진입 대비 ' + liqDistPct.toFixed(1) + '%인데 손절폭 ' + slPercent.toFixed(1) + '%. 레버리지를 <b>' + maxLevByLiq + '배 이하</b>로.' });
             const overRule = effLeverage > MAX_LEV_RULE + 1e-9;
-            if (overRule) {
-                alerts.push({
-                    type: 'warn', icon: '⚠️',
-                    msg: '레버리지 ' + effLeverage.toFixed(effLeverage % 1 === 0 ? 0 : 1)
-                        + '배 — 권장 기준(≤' + MAX_LEV_RULE + '배)을 초과합니다. '
-                        + (currentMode === 'margin' ? '증거금을 늘려 레버리지를 낮추세요.' : '권장하지 않습니다.')
-                });
-            }
-
-            // 6) 모두 안전할 때
-            if (alerts.length === 0 && effLeverage > 0) {
-                alerts.push({ type: 'ok', icon: '✅', msg: '레버리지 · 리스크 · 청산 여유 모두 안전 범위입니다.' });
-            }
-
+            if (overRule) alerts.push({ type: 'warn', icon: '⚠️', msg: '레버리지 ' + effLeverage.toFixed(effLeverage % 1 === 0 ? 0 : 1) + '배 — 권장(≤' + MAX_LEV_RULE + '배) 초과.' });
+            if (alerts.length === 0 && effLeverage > 0) alerts.push({ type: 'ok', icon: '✅', msg: '레버리지 · 리스크 · 청산 여유 모두 안전 범위입니다.' });
             renderAlerts(alerts);
+            dynamicInputEl.classList.toggle('input-danger', overRule || liqUnsafe || isMarginOverSeed);
 
-            if (currentMode === 'leverage') {
-                dynamicInputEl.classList.toggle('input-danger', overRule || liqUnsafe || isMarginOverSeed);
-            } else {
-                dynamicInputEl.classList.remove('input-danger');
-            }
-
-            // ===== 진입 게이트 상태 갱신 =====
             const gateQtyDisp = (minQtyStep > 0 && actualCoinQty > 0)
-                ? (minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0)) + ' BTC')
-                : theoryCoinQty.toFixed(4) + ' BTC';
+                ? (minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0)))
+                : theoryCoinQty.toFixed(4);
             gateState = {
-                inputsComplete: (entryPrice > 0 && stopLossPrice > 0 && totalCapital > 0 && takeProfitPrice > 0),
+                mode: 'crypto',
+                inputsComplete: (entryPrice > 0 && stopLossPrice > 0 && totalCapital > 0 && takeProfitPrice > 0 && effLeverage > 0),
                 qtyValid: !qtyBelowMin,
                 riskPct: actualRiskPercent,
                 lev: effLeverage,
+                marginEntered: true,
                 marginOver: isMarginOverSeed,
                 liqUnsafe: liqUnsafe,
                 tpValid: isTpValid,
                 rr: rrRatio,
                 qtyText: gateQtyDisp,
                 notionalText: formatNum(actualPositionValue, 2) + ' USDT',
-                isLong: isLong,
-                entry: entryPrice, sl: stopLossPrice, tp: takeProfitPrice
+                isLong: isLong, entry: entryPrice, sl: stopLossPrice, tp: takeProfitPrice
             };
             updateGate();
         }
 
-        // ===== 진입 게이트 로직 =====
+        // ===== 진입 게이트 로직 (모드 공용) =====
         function updateGate() {
             const gs = gateState;
-            const ready = gs.inputsComplete && gs.lev > 0;
+            const ready = gs.inputsComplete;
 
-            const qEl = document.getElementById('gateQty');
-            qEl.innerHTML = ready
+            document.getElementById('gateQty').innerHTML = ready
                 ? '거래소 주문창 수량 대조 → <b>' + gs.qtyText + '</b> &nbsp;·&nbsp; <b>' + gs.notionalText + '</b>'
-                : '계산기를 먼저 채우세요 (진입가·SL·TP·시드·레버리지)';
+                : '계산기를 먼저 채우세요';
 
             function mark(id, pass) {
                 const el = document.getElementById(id);
+                if (!el) return;
                 if (!ready) { el.textContent = '—'; el.className = 'gate-auto-mark'; return; }
                 el.textContent = pass ? '✓' : '✗';
                 el.className = 'gate-auto-mark ' + (pass ? 'gate-auto-ok' : 'gate-auto-bad');
             }
+
             const riskOk = gs.riskPct <= MAX_RISK_RULE + 1e-9;
             const levOk = gs.lev <= MAX_LEV_RULE + 1e-9;
-            const marginOk = !gs.marginOver;
+            const marginOk = gs.mode === 'futures' ? (!gs.marginEntered || !gs.marginOver) : !gs.marginOver;
             const liqOk = !gs.liqUnsafe;
             const tpOk = gs.tpValid;
+            const contractsOk = gs.qtyValid;
+
             mark('ga_risk', riskOk);
-            mark('ga_lev', levOk);
             mark('ga_margin', marginOk);
-            mark('ga_liq', liqOk);
             mark('ga_tp', tpOk);
+            if (gs.mode === 'crypto') { mark('ga_lev', levOk); mark('ga_liq', liqOk); }
+            else { mark('ga_contracts', contractsOk); }
 
             const sober = document.getElementById('gk_sober').checked;
             const circuit = document.getElementById('gk_circuit').checked;
@@ -1011,11 +1118,13 @@
             if (!circuit) reasons.push('서킷브레이커 미확인');
             if (!qtymatch) reasons.push('거래소 수량 일치 미확인');
             if (ready) {
-                if (!gs.qtyValid) reasons.push('포지션 최소 단위 미달 (체결 불가)');
+                if (!gs.qtyValid) reasons.push(gs.mode === 'crypto' ? '포지션 최소 단위 미달(체결 불가)' : '계약 1개 미만(체결 불가)');
                 if (!riskOk) reasons.push('리스크 ' + gs.riskPct.toFixed(2) + '% > 2%');
-                if (!levOk) reasons.push('레버리지 ' + gs.lev.toFixed(1) + 'x > 5x');
+                if (gs.mode === 'crypto') {
+                    if (!levOk) reasons.push('레버리지 ' + gs.lev.toFixed(1) + 'x > 5x');
+                    if (!liqOk) reasons.push('손절 전 청산위험');
+                }
                 if (!marginOk) reasons.push('증거금 시드 초과');
-                if (!liqOk) reasons.push('손절 전 청산위험');
                 if (!tpOk) reasons.push('TP 방향 오류');
             }
 
@@ -1026,18 +1135,15 @@
             const go = document.getElementById('gateGo');
             const reasonsEl = document.getElementById('gateReasons');
             if (reasons.length > 0) {
-                go.className = 'gate-go stop';
-                go.disabled = true;
+                go.className = 'gate-go stop'; go.disabled = true;
                 go.textContent = ready ? '🔴 STOP — 진입 불가' : '계산기를 먼저 채우세요';
                 reasonsEl.innerHTML = ready ? ('막힘: ' + reasons.join(' · ')) : '';
             } else if (incomplete > 0) {
-                go.className = 'gate-go warn';
-                go.disabled = false;
+                go.className = 'gate-go warn'; go.disabled = false;
                 go.textContent = '⚠️ 미완 ' + incomplete + '개 — 그래도 진입';
                 reasonsEl.innerHTML = '경고: 셋업 확인 항목 ' + incomplete + '개 미완 (그래도 진행 가능)';
             } else {
-                go.className = 'gate-go ok';
-                go.disabled = false;
+                go.className = 'gate-go ok'; go.disabled = false;
                 go.textContent = '✅ 진입 승인';
                 reasonsEl.innerHTML = '';
             }
@@ -1048,9 +1154,8 @@
             if (go.disabled) return;
             const now = new Date();
             const pad = n => String(n).padStart(2, '0');
-            const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
             document.getElementById('gateStampWrap').innerHTML =
-                '<div class="gate-stamp">✅ 진입 승인 · ' + time + '</div>';
+                '<div class="gate-stamp">✅ 진입 승인 · ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + '</div>';
         }
 
         function resetGate() {
@@ -1060,7 +1165,8 @@
             updateGate();
         }
 
-        calculate();
+        // 초기화: 선물 기본(골드·마이크로 MGC)
+        onProductChange();
     </script>
 
 </body>

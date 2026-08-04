@@ -458,7 +458,7 @@
 
         <div class="mode-toggle">
             <button id="btnModeFutures" class="mode-btn active" onclick="setMode('futures')">📈 선물 (Futures)</button>
-            <button id="btnModeCrypto" class="mode-btn" onclick="setMode('crypto')">🪙 크립토 (레버리지)</button>
+            <button id="btnModeCrypto" class="mode-btn" onclick="setMode('crypto')">₿ 크립토</button>
         </div>
 
         <div class="grid-inputs">
@@ -480,7 +480,6 @@
                 <select id="futProduct" onchange="onProductChange()">
                     <option value="gold">골드 (Gold)</option>
                     <option value="nasdaq">나스닥100 (Nasdaq)</option>
-                    <option value="sp">S&amp;P 500</option>
                     <option value="crude">WTI 원유 (Crude)</option>
                     <option value="custom">기타 / 직접입력</option>
                 </select>
@@ -667,7 +666,6 @@
         const FUT_SPECS = {
             gold:   [['micro', '마이크로 MGC (10oz)', 10, 0.10], ['standard', '스탠다드 GC (100oz)', 100, 0.10]],
             nasdaq: [['micro', '마이크로 MNQ', 2, 0.25], ['emini', '이미니 NQ', 20, 0.25]],
-            sp:     [['micro', '마이크로 MES', 5, 0.25], ['emini', '이미니 ES', 50, 0.25]],
             crude:  [['micro', '마이크로 MCL (100bbl)', 100, 0.01], ['emini', '이미니 QM (500bbl)', 500, 0.025], ['standard', '스탠다드 CL (1000bbl)', 1000, 0.01]],
             custom: []
         };

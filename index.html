@@ -509,9 +509,10 @@
             </div>
 
             <div class="input-group fut-only" style="order: 6;">
-                <label for="futMarginPerContract">계약당 증거금 (선택)</label>
-                <input type="text" id="futMarginPerContract" value="" placeholder="예: 500" inputmode="decimal"
+                <label for="futFeePerContract">계약당 수수료 (편도·선택)</label>
+                <input type="text" id="futFeePerContract" value="" placeholder="예: 2.5" inputmode="decimal"
                     pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
+                <div class="hint">왕복이면 절반 입력 · 순손익·손익분기 자동 반영</div>
             </div>
 
             <!-- ===== 크립토 전용 ===== -->
@@ -589,8 +590,8 @@
                     <span class="result-value" id="futNotional">—</span>
                 </div>
                 <div class="result-row">
-                    <span class="result-label">필요 증거금 (선택)</span>
-                    <span class="result-value highlight-navy" id="futMargin">—</span>
+                    <span class="result-label">수수료 (왕복)</span>
+                    <span class="result-value danger" id="futFee">—</span>
                 </div>
             </div>
 
@@ -643,7 +644,7 @@
                         id="ga_contracts">—</span></div>
                 <div class="gate-item auto crypto-only"><span>🧮 레버리지 ≤ 5x</span><span class="gate-auto-mark"
                         id="ga_lev">—</span></div>
-                <div class="gate-item auto"><span>🧮 증거금 ≤ 시드</span><span class="gate-auto-mark" id="ga_margin">—</span>
+                <div class="gate-item auto crypto-only"><span>🧮 증거금 ≤ 시드</span><span class="gate-auto-mark" id="ga_margin">—</span>
                 </div>
                 <div class="gate-item auto crypto-only"><span>🧮 손절 전 청산위험 없음</span><span class="gate-auto-mark"
                         id="ga_liq">—</span></div>
@@ -725,7 +726,7 @@
         }
         function clearAllResults() {
             ['rrRatio', 'expectedProfit', 'expectedRoi', 'maxLossAmount', 'direction',
-                'futStopDist', 'futContracts', 'futRiskPerC', 'futNotional', 'futMargin',
+                'futStopDist', 'futContracts', 'futRiskPerC', 'futNotional', 'futFee',
                 'slPercent', 'positionValue', 'valResultDynamic', 'coinQty', 'liqPrice', 'recMaxLev']
                 .forEach(id => { const e = document.getElementById(id); if (e) e.innerText = '—'; });
             document.getElementById('alertArea').innerHTML = '';
@@ -862,7 +863,7 @@
             const sl = parseNum(document.getElementById('stopLossPrice').value);
             const tp = parseNum(document.getElementById('takeProfitPrice').value);
             const pv = parseNum(document.getElementById('futPointValue').value);
-            const marginPerC = parseNum(document.getElementById('futMarginPerContract').value);
+            const feePerSide = parseNum(document.getElementById('futFeePerContract').value);
 
             const rr = document.getElementById('rrRatio');
             const ep = document.getElementById('expectedProfit');
@@ -872,7 +873,7 @@
             const fc = document.getElementById('futContracts');
             const frc = document.getElementById('futRiskPerC');
             const fn = document.getElementById('futNotional');
-            const fm = document.getElementById('futMargin');
+            const ff = document.getElementById('futFee');
 
             if (entry <= 0 || sl <= 0 || account <= 0 || pv <= 0) {
                 clearAllResults(); gateSetIncomplete(); return;
@@ -894,7 +895,9 @@
             const actualRisk = contracts * riskPerContract;
             const actualRiskPct = (actualRisk / account) * 100;
             const notional = contracts * pv * entry;
-            const totalMargin = marginPerC > 0 ? contracts * marginPerC : 0;
+            const totalFee = feePerSide > 0 ? feePerSide * contracts * 2 : 0;   // 왕복(진입+청산)
+            const feeBreakevenPts = (feePerSide > 0 && pv > 0) ? (2 * feePerSide / pv) : 0;
+            const netRisk = actualRisk + totalFee;
             const stopTicks = futTick > 0 ? stopDist / futTick : 0;
             const slPct = (stopDist / entry) * 100;
 
@@ -911,37 +914,40 @@
                 fn.innerText = '—';
             } else {
                 fc.innerText = contracts + ' 계약';
-                mla.innerHTML = '' + formatNum(actualRisk, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPct.toFixed(2) + '% · 예산 ' + formatNum(riskDollar, 2) + ')</span>';
+                mla.innerHTML = totalFee > 0
+                    ? '' + formatNum(netRisk, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(손실 ' + formatNum(actualRisk, 2) + ' + 수수료 ' + formatNum(totalFee, 2) + ')</span>'
+                    : '' + formatNum(actualRisk, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPct.toFixed(2) + '% · 예산 ' + formatNum(riskDollar, 2) + ')</span>';
                 frc.innerText = '' + formatNum(riskPerContract, 2);
                 fn.innerText = '' + formatNum(notional, 0);
             }
 
-            // 필요 증거금
-            if (marginPerC > 0 && !belowMin) {
-                const over = totalMargin > account;
-                fm.innerHTML = over
-                    ? '<span class="danger">' + formatNum(totalMargin, 0) + ' (시드 초과 🚨)</span>'
-                    : '' + formatNum(totalMargin, 0) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(계약 ' + contracts + ' × ' + formatNum(marginPerC, 0) + ')</span>';
+            // 수수료 (왕복 = 진입+청산)
+            if (feePerSide > 0 && !belowMin) {
+                ff.innerHTML = '-' + formatNum(totalFee, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(편도 ' + formatNum(feePerSide, 2) + ' × ' + contracts + ' × 2 · 손익분기 ' + feeBreakevenPts.toFixed(feeBreakevenPts < 1 ? 2 : 1) + 'pt)</span>';
             } else {
-                fm.innerText = marginPerC > 0 ? '—' : '(입력 시 표시)';
+                ff.innerText = feePerSide > 0 ? '—' : '(입력 시 순손익 반영)';
             }
 
-            // R:R / 기대수익 / ROI
-            let isTpValid = false, rrRatio = 0, expectedProfit = 0, tpPct = 0;
+            // R:R / 기대수익 / ROI (수수료 반영 = 순)
+            let isTpValid = false, rrRatio = 0, expectedProfit = 0, tpPct = 0, netProfit = 0, netRR = 0;
             if (tp > 0) {
                 if (isLong && tp > entry) { tpPct = (tp - entry) / entry * 100; isTpValid = true; }
                 else if (!isLong && tp < entry) { tpPct = (entry - tp) / entry * 100; isTpValid = true; }
                 if (isTpValid) {
                     rrRatio = Math.abs(tp - entry) / stopDist;
                     expectedProfit = contracts * Math.abs(tp - entry) * pv;
-                    const roiSeed = (expectedProfit / account) * 100;
-                    rr.innerHTML = '1 : <b>' + rrRatio.toFixed(2) + '</b>';
-                    ep.innerText = belowMin ? '—' : '+' + formatNum(expectedProfit, 2);
-                    if (belowMin) { eroi.innerText = '—'; }
+                    netProfit = expectedProfit - totalFee;
+                    netRR = netRisk > 0 ? netProfit / netRisk : 0;
+                    const roiSeed = ((totalFee > 0 ? netProfit : expectedProfit) / account) * 100;
+                    rr.innerHTML = totalFee > 0
+                        ? '1 : <b>' + netRR.toFixed(2) + '</b> <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(순 · 총 1:' + rrRatio.toFixed(2) + ')</span>'
+                        : '1 : <b>' + rrRatio.toFixed(2) + '</b>';
+                    if (belowMin) { ep.innerText = '—'; eroi.innerText = '—'; }
                     else {
-                        let roiHtml = '<span class="highlight-green">+' + roiSeed.toFixed(2) + '%</span><span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 시드</span>';
-                        if (totalMargin > 0) { roiHtml += ' · <span>+' + ((expectedProfit / totalMargin) * 100).toFixed(1) + '%</span><span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 증거금</span>'; }
-                        eroi.innerHTML = roiHtml;
+                        ep.innerHTML = totalFee > 0
+                            ? '+' + formatNum(netProfit, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(총 +' + formatNum(expectedProfit, 2) + ' · 수수료 -' + formatNum(totalFee, 2) + ')</span>'
+                            : '+' + formatNum(expectedProfit, 2);
+                        eroi.innerHTML = '<span class="highlight-green">+' + roiSeed.toFixed(2) + '%</span><span style="font-size:0.64rem;color:var(--text-sub);font-weight:600;"> 시드' + (totalFee > 0 ? ' (순)' : '') + '</span>';
                     }
                 } else { rr.innerText = '오류 (TP 방향 부적절)'; ep.innerText = '—'; eroi.innerText = '—'; }
             } else { rr.innerText = '—'; ep.innerText = '—'; eroi.innerText = '—'; }
@@ -954,8 +960,8 @@
                     msg: '<b>체결 불가 — 1계약도 못 잡습니다.</b> 손절폭 ' + formatNum(stopDist, 2) + 'pt = 계약당 ' + formatNum(riskPerContract, 2) + '인데, 리스크 ' + risk + '% 예산은 ' + formatNum(riskDollar, 2) + ' → <b>' + contractsExact.toFixed(2) + '계약</b>.<br>➡️ <b>해결:</b> ① 리스크를 <b>≈' + minRiskPct.toFixed(2) + '%</b>로(1계약 손실 ' + formatNum(riskPerContract, 2) + ') · ② 손절폭이 더 좁은 셋업 · ③ 시드 증액.<br>⚠️ 선물은 <b>1계약이 최소</b>라 이보다 작게는 불가능해요.'
                 });
             }
-            if (marginPerC > 0 && !belowMin && totalMargin > account) {
-                alerts.push({ type: 'danger', icon: '🚨', msg: '<b>증거금 부족!</b> 필요 증거금(계약 ' + contracts + ' × ' + formatNum(marginPerC, 0) + ' = ' + formatNum(totalMargin, 0) + ')이 시드(' + formatNum(account, 0) + ')를 초과합니다. 계약을 줄이거나 시드를 늘리세요.' });
+            if (isTpValid && totalFee > 0 && !belowMin && netRR < 1.0) {
+                alerts.push({ type: 'warn', icon: '💸', msg: '<b>수수료 반영 손익비 1:' + netRR.toFixed(2) + '</b> — 왕복 수수료(' + formatNum(totalFee, 2) + ')가 수익을 크게 잠식합니다. 타깃을 넓히거나(손익분기 ' + feeBreakevenPts.toFixed(2) + 'pt) 계약을 늘리세요. 소액일수록 수수료 비중이 치명적이에요.' });
             }
             if (risk > 5) alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + risk + '% — 과도합니다. 권장 1~3%(최대 5%).' });
             if (tp > 0 && !isTpValid) alerts.push({ type: 'danger', icon: '🚨', msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 TP는 진입가보다 높아야' : '숏 TP는 진입가보다 낮아야') + ' 합니다.' });
@@ -976,8 +982,8 @@
                 qtyValid: !belowMin,
                 riskPct: actualRiskPct,
                 lev: 0,
-                marginEntered: marginPerC > 0,
-                marginOver: (marginPerC > 0 && totalMargin > account),
+                marginEntered: false,
+                marginOver: false,
                 liqUnsafe: false,
                 tpValid: isTpValid,
                 rr: rrRatio,
@@ -1217,7 +1223,7 @@
             // 위 숫자 입력값도 초기화 (현재 모드) — 리스크%만 기본값 1로
             SHARED_FIELDS.forEach(id => { document.getElementById(id).value = (id === 'riskPercent' ? '1' : ''); });
             if (currentMode === 'futures') {
-                document.getElementById('futMarginPerContract').value = '';
+                document.getElementById('futFeePerContract').value = '';
             } else {
                 document.getElementById('dynamicInput').value = '';
                 document.getElementById('minQtyStep').value = '';

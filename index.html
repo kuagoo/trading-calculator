@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v3.1 (2026-08-14) — 선물(Futures) 모드 S&P500(MES/ES) 및 비트코인 선물(MBT/BTC) 추가
+  버전: v3.2 (2026-08-14) — 로고 최신화 (스텔스 쉴드 & 조준선 SVG) 및 선물 종목 목록 원복 (골드·나스닥·원유)
     · 선물 모드 = 계약(contract) 기반 사이징: 계약 수 = 내림( 리스크 ÷ (손절폭 × 점가치) ). 정수 계약, 레버리지 개념 없음.
-    · 상품 × 사이즈 2축 드롭다운(골드·나스닥·S&P500·비트코인·크루드 × 마이크로·이미니·스탠다드) → 점가치 자동+수정가능.
-    · S&P 500: MES(Micro, $5/pt) / ES(E-mini, $50/pt)
-    · 비트코인 선물: MBT(Micro 0.1 BTC, $0.1/pt) / BTC(Standard 5 BTC, $5/pt)
+    · 상품 × 사이즈 2축 드롭다운(골드·나스닥·원유 × 마이크로·이미니·스탠다드) → 점가치 자동+수정가능.
+    · 로고: 구형 캔들 아이콘 대신 다크 엠블럼 + 골드 쉴드 + 아이스 블루 타깃 조준선 디자인 적용.
 -->
 <html lang="ko">
 
@@ -18,9 +17,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="리스크계산기">
 
-    <!-- 홈화면 앱 아이콘 (다크 네이비 + 골드 캔들) -->
+    <!-- 홈화면 앱 아이콘 & 파비콘 (다크 스텔스 쉴드 + 골드 & 아이스 블루 조준선) -->
     <link rel="apple-touch-icon"
-        href="data:image/png;base64,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">
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231E293B'/%3E%3Cstop offset='100%25' stop-color='%230F172A'/%3E%3C/linearGradient%3E%3ClinearGradient id='gold' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23F59E0B'/%3E%3Cstop offset='100%25' stop-color='%23D97706'/%3E%3C/linearGradient%3E%3ClinearGradient id='cyan' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338BDF8'/%3E%3Cstop offset='100%25' stop-color='%230284C7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='128' fill='url(%23bg)'/%3E%3Cpath d='M256 80L390 144V256C390 348 332 414 256 440C180 414 122 348 122 256V144L256 80Z' fill='none' stroke='url(%23gold)' stroke-width='24' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='256' r='64' fill='none' stroke='url(%23cyan)' stroke-width='20'/%3E%3Cpath d='M256 160V192M256 320V352M160 256H192M320 256H352' stroke='url(%23cyan)' stroke-width='18' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231E293B'/%3E%3Cstop offset='100%25' stop-color='%230F172A'/%3E%3C/linearGradient%3E%3ClinearGradient id='gold' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23F59E0B'/%3E%3Cstop offset='100%25' stop-color='%23D97706'/%3E%3C/linearGradient%3E%3ClinearGradient id='cyan' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338BDF8'/%3E%3Cstop offset='100%25' stop-color='%230284C7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='128' fill='url(%23bg)'/%3E%3Cpath d='M256 80L390 144V256C390 348 332 414 256 440C180 414 122 348 122 256V144L256 80Z' fill='none' stroke='url(%23gold)' stroke-width='24' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='256' r='64' fill='none' stroke='url(%23cyan)' stroke-width='20'/%3E%3Cpath d='M256 160V192M256 320V352M160 256H192M320 256H352' stroke='url(%23cyan)' stroke-width='18' stroke-linecap='round'/%3E%3C/svg%3E">
 
     <title>리스크 계산기</title>
     <style>
@@ -88,13 +89,13 @@
             margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
-        .btc-icon {
-            color: var(--btc-gold);
-            font-size: 1.2rem;
-            font-weight: 800;
+        .title-logo {
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         .mode-toggle {
@@ -461,7 +462,21 @@
 <body>
 
     <div class="calculator-card mode-futures" id="card">
-        <div class="title"><span class="btc-icon">📊</span> 포지션 리스크 & 손익비 계산기</div>
+        <div class="title">
+            <svg class="title-logo" viewBox="0 0 32 32" width="24" height="24">
+                <rect width="32" height="32" rx="8" fill="url(#titleLogoGrad)"/>
+                <path d="M16 6L24 10V16C24 21.5 20.5 25.5 16 27C11.5 25.5 8 21.5 8 16V10L16 6Z" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+                <circle cx="16" cy="16" r="4" fill="none" stroke="#38BDF8" stroke-width="2"/>
+                <path d="M16 10V12M16 20V22M10 16H12M20 16H22" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="titleLogoGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#1E293B"/>
+                        <stop offset="100%" stop-color="#0F172A"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            포지션 리스크 & 손익비 계산기
+        </div>
 
         <div class="mode-toggle">
             <button id="btnModeFutures" class="mode-btn active" onclick="setMode('futures')">📈 선물 (Futures)</button>
@@ -487,8 +502,6 @@
                 <select id="futProduct" onchange="onProductChange()">
                     <option value="gold">골드 (Gold)</option>
                     <option value="nasdaq">나스닥100 (Nasdaq)</option>
-                    <option value="sp500">S&P 500 (S&P 500)</option>
-                    <option value="btc">비트코인 선물 (Bitcoin)</option>
                     <option value="crude">WTI 원유 (Crude)</option>
                     <option value="custom">기타 / 직접입력</option>
                 </select>
@@ -695,8 +708,6 @@
         const FUT_SPECS = {
             gold: [['micro', 'MGC (10oz)', 10, 0.10], ['standard', 'GC (100oz)', 100, 0.10]],
             nasdaq: [['micro', 'MNQ', 2, 0.25], ['emini', 'NQ', 20, 0.25]],
-            sp500: [['micro', 'MES (Micro S&P)', 5, 0.25], ['emini', 'ES (E-mini S&P)', 50, 0.25]],
-            btc: [['micro', 'MBT (Micro 0.1 BTC)', 0.1, 5], ['standard', 'BTC (Standard 5 BTC)', 5, 5]],
             crude: [['micro', 'MCL (100bbl)', 100, 0.01], ['emini', 'QM (500bbl)', 500, 0.025], ['standard', 'CL (1000bbl)', 1000, 0.01]],
             custom: []
         };

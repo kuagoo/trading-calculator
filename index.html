@@ -464,11 +464,10 @@
 
     <div class="calculator-card mode-futures" id="card">
         <div class="title">
-            <div class="title-icon-box">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9" stroke="#F59E0B" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
+            <div class="title-icon-box" style="background: linear-gradient(135deg, #0F172A, #1E293B); border: 1px solid #F59E0B; box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 22 12 12 22 2 12" stroke="#F59E0B" stroke-width="2" fill="rgba(245, 158, 11, 0.15)"/>
+                    <polyline points="8 12 11 15 16 9" stroke="#38BDF8" stroke-width="2.5"/>
                 </svg>
             </div>
             포지션 리스크 & 손익비 계산기
@@ -513,14 +512,14 @@
                 <label for="futPointValue">점가치 (1.0 이동당)</label>
                 <input type="text" id="futPointValue" value="" placeholder="자동" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="calculate()">
-                <div class="hint" id="futSpecHint">—</div>
+                <div class="hint" id="futSpecHint" style="display:none;"></div>
             </div>
 
             <div class="input-group fut-only" style="order: 6;">
                 <label for="futFeePerContract">계약당 수수료 (편도·선택)</label>
                 <input type="text" id="futFeePerContract" value="" placeholder="예: 2.5" inputmode="decimal"
                     pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
-                <div class="hint">왕복이면 절반 입력 · 순손익·손익분기 자동 반영</div>
+                
             </div>
 
             <!-- ===== 크립토 전용 ===== -->
@@ -550,7 +549,7 @@
             </div>
 
             <div class="input-group" style="order: 9;">
-                <label for="stopLossPrice">손절가 (Stop Loss)</label>
+                <label for="stopLossPrice">손절가 (Stop Loss / SL)</label>
                 <input type="text" id="stopLossPrice" value="" placeholder="손절가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
             </div>
@@ -765,7 +764,7 @@
                 sizeSel.disabled = true;
                 pvInput.value = '';
                 futTick = 0;
-                document.getElementById('futSpecHint').textContent = '점가치를 직접 입력하세요 (1.0 이동당)';
+                // document.getElementById('futSpecHint').textContent = '점가치를 직접 입력하세요 (1.0 이동당)';
                 calculate();
                 return;
             }
@@ -789,7 +788,7 @@
             document.getElementById('futPointValue').value = pv;
             futTick = tick;
             const tickDollar = Math.round(pv * tick * 100) / 100;
-            document.getElementById('futSpecHint').textContent =
+            // document.getElementById('futSpecHint').textContent =
                 s[1] + ' · 1.0 이동 = ' + pv + ' · 1틱(' + tick + ') = ' + tickDollar;
             calculate();
         }

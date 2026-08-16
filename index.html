@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v3.4.1 (2026-08-16) — 비트코인 점가치 수정(MBT 0.1·BTC 5), 게이트 잔여 스텁 정리, 초기화 버튼 유지
+  버전: v3.4.2 (2026-08-16) — 상품목록 개편(금·구리·비트코인·나스닥·직접입력), 구리 점가치/손절폭 표시 추가, 비트코인 점가치 수정, 게이트 제거
 -->
 <html lang="ko">
 
@@ -336,7 +336,7 @@
 
     <div class="calculator-card mode-futures" id="card">
         <div class="title">
-            포지션 리스크 & 손익비 계산기
+          포지션 리스크 & 손익비 계산기
         </div>
 
         <div class="mode-toggle">
@@ -362,10 +362,9 @@
                 <label for="futProduct">상품 (Product)</label>
                 <select id="futProduct" onchange="onProductChange()">
                     <option value="gold">골드 (Gold)</option>
+                    <option value="copper">구리 (Copper)</option>
                     <option value="bitcoin">비트코인 (Bitcoin)</option>
                     <option value="nasdaq">나스닥100 (Nasdaq)</option>
-                    <option value="sp500">S&P 500 (S&P 500)</option>
-                    <option value="crude">WTI 원유 (Crude)</option>
                     <option value="custom">기타 / 직접입력</option>
                 </select>
             </div>
@@ -514,10 +513,9 @@
         // 선물 계약 스펙: 상품 → [사이즈키, 라벨, 점가치(/1.0이동), 틱]
         const FUT_SPECS = {
             gold: [['micro', 'MGC (10oz)', 10, 0.10], ['standard', 'GC (100oz)', 100, 0.10]],
+            copper: [['micro', 'MHG (2,500 lb)', 2500, 0.0005], ['standard', 'HG (25,000 lb)', 25000, 0.0005]],
             bitcoin: [['micro', 'MBT (0.1 BTC)', 0.1, 5], ['standard', 'BTC (5 BTC)', 5, 5]],
             nasdaq: [['micro', 'MNQ', 2, 0.25], ['emini', 'NQ', 20, 0.25]],
-            sp500: [['micro', 'MES (Micro S&P)', 5, 0.25], ['emini', 'ES (E-mini S&P)', 50, 0.25]],
-            crude: [['micro', 'MCL (100bbl)', 100, 0.01], ['emini', 'QM (500bbl)', 500, 0.025], ['standard', 'CL (1000bbl)', 1000, 0.01]],
             custom: []
         };
 
@@ -716,7 +714,7 @@
             const slPct = (stopDist / entry) * 100;
 
             // 손절폭
-            fsd.innerHTML = formatNum(stopDist, futTick && futTick < 1 ? 2 : 1) + ' pt'
+            fsd.innerHTML = formatNum(stopDist, !futTick ? 2 : (futTick >= 1 ? 1 : (futTick >= 0.01 ? 2 : 4))) + ' pt'
                 + (stopTicks > 0 ? ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + Math.round(stopTicks) + '틱 · ' + slPct.toFixed(2) + '%)</span>'
                     : ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + slPct.toFixed(2) + '%)</span>');
 

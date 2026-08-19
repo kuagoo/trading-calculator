@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v3.4.3 (2026-08-16) — 상품목록 원유 복귀·구리 제외(금·WTI원유·비트코인·나스닥·직접입력), 비트코인 점가치 수정, 게이트 제거
+  버전: v3.4.4 — 상품목록 나스닥 제외·구리 복귀(금·WTI원유·비트코인·구리·직접입력)
 -->
 <html lang="ko">
 
@@ -336,6 +336,9 @@
 
     <div class="calculator-card mode-futures" id="card">
         <div class="title">
+            <div class="title-icon-box">
+                <img src="1.jpg" alt="꾸아구">
+            </div>
             포지션 리스크 & 손익비 계산기
         </div>
 
@@ -364,7 +367,7 @@
                     <option value="gold">골드 (Gold)</option>
                     <option value="crude">WTI 원유 (Crude)</option>
                     <option value="bitcoin">비트코인 (Bitcoin)</option>
-                    <option value="nasdaq">나스닥100 (Nasdaq)</option>
+                    <option value="copper">구리 (Copper)</option>
                     <option value="custom">기타 / 직접입력</option>
                 </select>
             </div>
@@ -515,7 +518,7 @@
             gold: [['micro', 'MGC (10oz)', 10, 0.10], ['standard', 'GC (100oz)', 100, 0.10]],
             crude: [['micro', 'MCL (100bbl)', 100, 0.01], ['emini', 'QM (500bbl)', 500, 0.025], ['standard', 'CL (1000bbl)', 1000, 0.01]],
             bitcoin: [['micro', 'MBT (0.1 BTC)', 0.1, 5], ['standard', 'BTC (5 BTC)', 5, 5]],
-            nasdaq: [['micro', 'MNQ', 2, 0.25], ['emini', 'NQ', 20, 0.25]],
+            copper: [['micro', 'MHG (2,500 lbs)', 25, 0.0005], ['standard', 'HG (25,000 lbs)', 250, 0.0005]],
             custom: []
         };
 

@@ -91,13 +91,15 @@
         .title-icon-box {
             width: 26px;
             height: 26px;
-            background: linear-gradient(135deg, #1E293B, #0F172A);
-            border: 1px solid #F59E0B;
             border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow: hidden;
             flex-shrink: 0;
+        }
+
+        .title-icon-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .mode-toggle {
@@ -303,159 +305,29 @@
             color: var(--accent-green);
         }
 
-        /* ===== 진입 게이트(Pre-Trade Gate) ===== */
-        .gate {
-            margin-top: 10px;
-            border-top: 2px dashed var(--border);
-            padding-top: 10px;
-        }
-
-        .gate-title {
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 6px;
-        }
-
-        .gate-qty {
-            background: #EEF2FF;
-            border: 1px solid #C7D2FE;
-            border-radius: 8px;
-            padding: 7px 10px;
-            margin-bottom: 8px;
-            text-align: center;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: var(--accent-navy);
-        }
-
-        .gate-qty b {
-            font-size: 1.02rem;
-        }
-
-        .gate-group {
-            margin-bottom: 8px;
-        }
-
-        .gate-group-label {
-            font-size: 0.67rem;
-            font-weight: 800;
-            letter-spacing: .01em;
-            margin-bottom: 2px;
-        }
-
-        .gate-hard .gate-group-label {
-            color: var(--accent-burgundy);
-        }
-
-        .gate-warn .gate-group-label {
-            color: #B45309;
-        }
-
-        .gate-soft .gate-group-label {
-            color: var(--text-sub);
-        }
-
-        .gate-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 7px;
-            padding: 3px 0;
-            font-size: 0.76rem;
-            font-weight: 500;
-            line-height: 1.3;
-            color: var(--text-main);
-            cursor: pointer;
-        }
-
-        .gate-item input[type=checkbox] {
-            width: 18px;
-            height: 18px;
-            margin: 1px 0 0 0;
-            flex-shrink: 0;
-            accent-color: var(--accent-navy);
-        }
-
-        .gate-item.auto {
-            justify-content: space-between;
-            font-weight: 600;
-            cursor: default;
-            color: var(--text-sub);
-        }
-
-        .gate-auto-mark {
-            font-weight: 800;
-        }
-
-        .gate-auto-ok {
-            color: var(--accent-green);
-        }
-
-        .gate-auto-bad {
-            color: var(--accent-burgundy);
-        }
-
-        .gate-go {
-            width: 100%;
-            border: none;
-            border-radius: 10px;
-            padding: 13px;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #fff;
-            margin-top: 6px;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .gate-go.stop {
-            background: #9CA3AF;
-            cursor: not-allowed;
-        }
-
-        .gate-go.warn {
-            background: var(--btc-gold);
-        }
-
-        .gate-go.ok {
-            background: var(--accent-green);
-        }
-
-        .gate-reasons {
-            font-size: 0.72rem;
-            color: var(--accent-burgundy);
-            font-weight: 600;
-            margin-top: 6px;
-            line-height: 1.4;
-        }
-
-        .gate-stamp {
-            margin-top: 8px;
-            background: var(--ok-bg);
-            border: 1px solid #6EE7B7;
-            border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 0.82rem;
-            color: var(--accent-green);
-            font-weight: 700;
-        }
-
-        .gate-actions {
+        /* ===== 초기화 버튼 ===== */
+        .reset-actions {
             display: flex;
             gap: 6px;
-            margin-top: 6px;
+            margin-top: 10px;
         }
 
-        .gate-actions button {
+        .reset-actions button {
             flex: 1;
             border: 1px solid var(--border);
             background: var(--input-bg);
             border-radius: 8px;
-            padding: 8px;
-            font-size: 0.74rem;
+            padding: 10px;
+            font-size: 0.8rem;
             font-weight: 700;
             color: var(--text-main);
             cursor: pointer;
+            transition: all .15s;
+        }
+
+        .reset-actions button:active {
+            background: #E5E7EB;
+            transform: scale(0.97);
         }
     </style>
 </head>
@@ -464,17 +336,14 @@
 
     <div class="calculator-card mode-futures" id="card">
         <div class="title">
-            <div class="title-icon-box" style="background: linear-gradient(135deg, #0F172A, #1E293B); border: 1px solid #F59E0B; box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 22 12 12 22 2 12" stroke="#F59E0B" stroke-width="2" fill="rgba(245, 158, 11, 0.15)"/>
-                    <polyline points="8 12 11 15 16 9" stroke="#38BDF8" stroke-width="2.5"/>
-                </svg>
+            <div class="title-icon-box">
+                <img src="1.jpg" alt="꾸아구">
             </div>
             포지션 리스크 & 손익비 계산기
         </div>
 
         <div class="mode-toggle">
-            <button id="btnModeFutures" class="mode-btn active" onclick="setMode('futures')">📈 선물 (Futures)</button>
+            <button id="btnModeFutures" class="mode-btn active" onclick="setMode('futures')">📈 해외선물</button>
             <button id="btnModeCrypto" class="mode-btn" onclick="setMode('crypto')">₿ 크립토</button>
         </div>
 
@@ -497,7 +366,7 @@
                 <select id="futProduct" onchange="onProductChange()">
                     <option value="gold">골드 (Gold)</option>
                     <option value="crude">WTI 원유 (Crude)</option>
-                    <option value="btc">비트코인 (Bitcoin)</option>
+                    <option value="bitcoin">비트코인 (Bitcoin)</option>
                     <option value="copper">구리 (Copper)</option>
                     <option value="custom">기타 / 직접입력</option>
                 </select>
@@ -633,64 +502,8 @@
 
         <div class="alert-area" id="alertArea"></div>
 
-        <div class="gate">
-            <div class="gate-title">🚦 진입 게이트 (Pre-Trade Gate)</div>
-            <div class="gate-qty" id="gateQty">계산기를 먼저 채우세요</div>
-
-            <div class="gate-group gate-hard">
-                <div class="gate-group-label">① 하드 스톱 — 하나라도 실패 시 진입 금지</div>
-                <label class="gate-item"><input type="checkbox" id="gk_sober" onchange="updateGate()"><span>🍺 <b>맑은
-                            정신</b> — 음주·약물·심한 피로/졸림 없음</span></label>
-                <label class="gate-item"><input type="checkbox" id="gk_circuit" onchange="updateGate()"><span>🛑
-                        <b>서킷브레이커 통과</b> — 오늘 손실·연속 손절 한도 미도달</span></label>
-                <label class="gate-item"><input type="checkbox" id="gk_qtymatch" onchange="updateGate()"><span>🎯 <b>거래소
-                            주문창 수량이 위 계산값과 일치</b>함을 눈으로 확인</span></label>
-                <div class="gate-item auto"><span>🧮 리스크 ≤ 2%</span><span class="gate-auto-mark" id="ga_risk">—</span>
-                </div>
-                <div class="gate-item auto fut-only"><span>🧮 계약 ≥ 1 (체결 가능)</span><span class="gate-auto-mark"
-                        id="ga_contracts">—</span></div>
-                <div class="gate-item auto crypto-only"><span>🧮 레버리지 ≤ 5x</span><span class="gate-auto-mark"
-                        id="ga_lev">—</span></div>
-                <div class="gate-item auto crypto-only"><span>🧮 증거금 ≤ 시드</span><span class="gate-auto-mark" id="ga_margin">—</span>
-                </div>
-                <div class="gate-item auto crypto-only"><span>🧮 손절 전 청산위험 없음</span><span class="gate-auto-mark"
-                        id="ga_liq">—</span></div>
-                <div class="gate-item auto"><span>🧮 TP 방향 정상</span><span class="gate-auto-mark" id="ga_tp">—</span>
-                </div>
-            </div>
-
-            <div class="gate-group gate-warn">
-                <div class="gate-group-label">② 강한 경고 — 경고는 뜨지만 진행 가능(본인 책임)</div>
-                <label class="gate-item"><input type="checkbox" id="gw_clear" onchange="updateGate()"><span>🎯 <b>셋업이
-                            명백</b> — 근거를 '찾은' 게 아니라 '보이는' 자리(아리송 아님)</span></label>
-                <label class="gate-item"><input type="checkbox" id="gw_fomo" onchange="updateGate()"><span>🌙 <b>FOMO
-                            아님</b> — "자기 전 한탕·심심·놓치기 아까워서"가 아님</span></label>
-                <label class="gate-item"><input type="checkbox" id="gw_euphoria" onchange="updateGate()"><span>🎢 <b>도취
-                            경계</b> — 연승 뒤 레버리지·사이즈 올리지 않음</span></label>
-            </div>
-
-            <div class="gate-group gate-soft">
-                <div class="gate-group-label">③ 셋업 품질 — 권장</div>
-                <label class="gate-item"><input type="checkbox" id="gs_htf" onchange="updateGate()"><span>HTF 바이어스 방향
-                        기록(월/주/일)</span></label>
-                <label class="gate-item"><input type="checkbox" id="gs_edge" onchange="updateGate()"><span>레인지
-                        경계(상단/하단)에서 진입 — 중앙 금지</span></label>
-                <label class="gate-item"><input type="checkbox" id="gs_conf" onchange="updateGate()"><span>컨플루언스 3개
-                        이상</span></label>
-                <label class="gate-item"><input type="checkbox" id="gs_ifthen" onchange="updateGate()"><span>If-Then
-                        시나리오(돌파/반전) 작성</span></label>
-                <label class="gate-item"><input type="checkbox" id="gs_struct" onchange="updateGate()"><span>무효화·타깃이 마켓
-                        스트럭처 기반(고정% 손절 아님)</span></label>
-                <label class="gate-item"><input type="checkbox" id="gs_fix" onchange="updateGate()"><span><b>규칙위반·사이즈오류
-                            발견 시 즉시 정정, 희망 금지</b> 서약</span></label>
-            </div>
-
-            <button class="gate-go stop" id="gateGo" onclick="approveEntry()" disabled>계산기를 먼저 채우세요</button>
-            <div class="gate-reasons" id="gateReasons"></div>
-            <div id="gateStampWrap"></div>
-            <div class="gate-actions">
-                <button type="button" onclick="resetGate()">↺ 초기화 (다음 트레이드)</button>
-            </div>
+        <div class="reset-actions">
+            <button type="button" onclick="resetAll()">↺ 초기화</button>
         </div>
     </div>
 
@@ -704,14 +517,12 @@
         const FUT_SPECS = {
             gold: [['micro', 'MGC (10oz)', 10, 0.10], ['standard', 'GC (100oz)', 100, 0.10]],
             crude: [['micro', 'MCL (100bbl)', 100, 0.01], ['emini', 'QM (500bbl)', 500, 0.025], ['standard', 'CL (1000bbl)', 1000, 0.01]],
-            btc: [['micro', 'MBT (0.1 BTC)', 0.1, 5.0], ['standard', 'BTC (5 BTC)', 5, 5.0]],
-            copper: [['micro', 'QC/MHG (2,500 lbs)', 2500, 0.0005], ['standard', 'HG (25,000 lbs)', 25000, 0.0005]],
+            bitcoin: [['micro', 'MBT (0.1 BTC)', 0.1, 5], ['standard', 'BTC (5 BTC)', 5, 5]],
+            copper: [['micro', 'MHG (2,500 lbs)', 2500, 0.0005], ['standard', 'HG (25,000 lbs)', 25000, 0.0005]],
             custom: []
         };
 
-        // 게이트 참조 상태
-        let gateState = { mode: 'futures', inputsComplete: false, qtyValid: true, riskPct: 0, lev: 0, marginOver: false, marginEntered: false, liqUnsafe: false, tpValid: false, rr: 0, qtyText: '', notionalText: '', isLong: true, entry: 0, sl: 0, tp: 0 };
-        function gateSetIncomplete() { gateState.inputsComplete = false; updateGate(); }
+        // (진입게이트 완전 제거됨 — 스텁/참조 없음)
 
         document.querySelectorAll('.grid-inputs input').forEach(el => {
             el.addEventListener('blur', () => { window.scrollTo(0, 0); document.body.scrollTop = 0; });
@@ -764,7 +575,6 @@
                 sizeSel.disabled = true;
                 pvInput.value = '';
                 futTick = 0;
-                // document.getElementById('futSpecHint').textContent = '점가치를 직접 입력하세요 (1.0 이동당)';
                 calculate();
                 return;
             }
@@ -787,9 +597,6 @@
             const pv = s[2], tick = s[3];
             document.getElementById('futPointValue').value = pv;
             futTick = tick;
-            const tickDollar = Math.round(pv * tick * 100) / 100;
-            // document.getElementById('futSpecHint').textContent =
-                s[1] + ' · 1.0 이동 = ' + pv + ' · 1틱(' + tick + ') = ' + tickDollar;
             calculate();
         }
 
@@ -884,14 +691,14 @@
             const ff = document.getElementById('futFee');
 
             if (entry <= 0 || sl <= 0 || account <= 0 || pv <= 0) {
-                clearAllResults(); gateSetIncomplete(); return;
+                clearAllResults(); return;
             }
 
             const isLong = sl < entry;
             setDirection(isLong);
 
             const stopDist = Math.abs(entry - sl);
-            if (stopDist === 0) { gateSetIncomplete(); return; }
+            if (stopDist === 0) { clearAllResults(); return; }
 
             const riskDollar = account * (risk / 100);
             const riskPerContract = stopDist * pv;
@@ -910,7 +717,7 @@
             const slPct = (stopDist / entry) * 100;
 
             // 손절폭
-            fsd.innerHTML = formatNum(stopDist, futTick && futTick < 1 ? 2 : 1) + ' pt'
+            fsd.innerHTML = formatNum(stopDist, !futTick ? 2 : (futTick >= 1 ? 1 : (futTick >= 0.01 ? 2 : 4))) + ' pt'
                 + (stopTicks > 0 ? ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + Math.round(stopTicks) + '틱 · ' + slPct.toFixed(2) + '%)</span>'
                     : ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(' + slPct.toFixed(2) + '%)</span>');
 
@@ -982,24 +789,6 @@
 
             document.getElementById('futPointValue').classList.remove('input-danger');
             document.getElementById('stopLossPrice').classList.toggle('input-danger', belowMin);
-
-            // 게이트 상태
-            gateState = {
-                mode: 'futures',
-                inputsComplete: (entry > 0 && sl > 0 && account > 0 && tp > 0 && pv > 0),
-                qtyValid: !belowMin,
-                riskPct: actualRiskPct,
-                lev: 0,
-                marginEntered: false,
-                marginOver: false,
-                liqUnsafe: false,
-                tpValid: isTpValid,
-                rr: rrRatio,
-                qtyText: (belowMin ? '0 계약 (체결 불가)' : contracts + ' 계약'),
-                notionalText: (belowMin ? '—' : '' + formatNum(notional, 0)),
-                isLong: isLong, entry: entry, sl: sl, tp: tp
-            };
-            updateGate();
         }
 
         // =================== 크립토(레버리지) 모드 ===================
@@ -1013,14 +802,14 @@
             const dynamicInputEl = document.getElementById('dynamicInput');
             const minQtyStep = parseNum(document.getElementById('minQtyStep').value);
 
-            if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) { clearAllResults(); gateSetIncomplete(); return; }
+            if (entryPrice <= 0 || stopLossPrice <= 0 || totalCapital <= 0) { clearAllResults(); return; }
 
             const isLong = stopLossPrice < entryPrice;
             setDirection(isLong);
 
             const maxLossAmount = totalCapital * (riskPercent / 100);
             const slPercent = Math.abs(entryPrice - stopLossPrice) / entryPrice * 100;
-            if (slPercent === 0) { clearAllResults(); gateSetIncomplete(); return; }
+            if (slPercent === 0) { clearAllResults(); return; }
 
             const theoryPositionValue = maxLossAmount / (slPercent / 100);
             const theoryCoinQty = theoryPositionValue / entryPrice;
@@ -1123,120 +912,22 @@
             renderAlerts(alerts);
             dynamicInputEl.classList.toggle('input-danger', overRule || liqUnsafe || isMarginOverSeed);
 
-            const gateQtyDisp = (minQtyStep > 0 && actualCoinQty > 0)
-                ? (minQtyStep >= 1 ? actualCoinQty.toFixed(0) + ' 계약' : actualCoinQty.toFixed(minQtyStep < 0.001 ? 4 : (minQtyStep < 1 ? 3 : 0)))
-                : theoryCoinQty.toFixed(4);
-            gateState = {
-                mode: 'crypto',
-                inputsComplete: (entryPrice > 0 && stopLossPrice > 0 && totalCapital > 0 && takeProfitPrice > 0 && effLeverage > 0),
-                qtyValid: !qtyBelowMin,
-                riskPct: actualRiskPercent,
-                lev: effLeverage,
-                marginEntered: true,
-                marginOver: isMarginOverSeed,
-                liqUnsafe: liqUnsafe,
-                tpValid: isTpValid,
-                rr: rrRatio,
-                qtyText: gateQtyDisp,
-                notionalText: formatNum(actualPositionValue, 2) + ' USDT',
-                isLong: isLong, entry: entryPrice, sl: stopLossPrice, tp: takeProfitPrice
-            };
-            updateGate();
         }
 
-        // ===== 진입 게이트 로직 (모드 공용) =====
-        function updateGate() {
-            const gs = gateState;
-            const ready = gs.inputsComplete;
-
-            document.getElementById('gateQty').innerHTML = ready
-                ? '거래소 주문창 수량 대조 → <b>' + gs.qtyText + '</b> &nbsp;·&nbsp; <b>' + gs.notionalText + '</b>'
-                : '계산기를 먼저 채우세요';
-
-            function mark(id, pass) {
-                const el = document.getElementById(id);
-                if (!el) return;
-                if (!ready) { el.textContent = '—'; el.className = 'gate-auto-mark'; return; }
-                el.textContent = pass ? '✓' : '✗';
-                el.className = 'gate-auto-mark ' + (pass ? 'gate-auto-ok' : 'gate-auto-bad');
-            }
-
-            const riskOk = gs.riskPct <= MAX_RISK_RULE + 1e-9;
-            const levOk = gs.lev <= MAX_LEV_RULE + 1e-9;
-            const marginOk = gs.mode === 'futures' ? (!gs.marginEntered || !gs.marginOver) : !gs.marginOver;
-            const liqOk = !gs.liqUnsafe;
-            const tpOk = gs.tpValid;
-            const contractsOk = gs.qtyValid;
-
-            mark('ga_risk', riskOk);
-            mark('ga_margin', marginOk);
-            mark('ga_tp', tpOk);
-            if (gs.mode === 'crypto') { mark('ga_lev', levOk); mark('ga_liq', liqOk); }
-            else { mark('ga_contracts', contractsOk); }
-
-            const sober = document.getElementById('gk_sober').checked;
-            const circuit = document.getElementById('gk_circuit').checked;
-            const qtymatch = document.getElementById('gk_qtymatch').checked;
-
-            const reasons = [];
-            if (!ready) reasons.push('계산기 입력 미완');
-            if (!sober) reasons.push('맑은 정신 미확인');
-            if (!circuit) reasons.push('서킷브레이커 미확인');
-            if (!qtymatch) reasons.push('거래소 수량 일치 미확인');
-            if (ready) {
-                if (!gs.qtyValid) reasons.push(gs.mode === 'crypto' ? '포지션 최소 단위 미달(체결 불가)' : '계약 1개 미만(체결 불가)');
-                if (!riskOk) reasons.push('리스크 ' + gs.riskPct.toFixed(2) + '% > 2%');
-                if (gs.mode === 'crypto') {
-                    if (!levOk) reasons.push('레버리지 ' + gs.lev.toFixed(1) + 'x > 5x');
-                    if (!liqOk) reasons.push('손절 전 청산위험');
-                }
-                if (!marginOk) reasons.push('증거금 시드 초과');
-                if (!tpOk) reasons.push('TP 방향 오류');
-            }
-
-            const optIds = ['gw_clear', 'gw_fomo', 'gw_euphoria', 'gs_htf', 'gs_edge', 'gs_conf', 'gs_ifthen', 'gs_struct', 'gs_fix'];
-            let incomplete = 0;
-            optIds.forEach(id => { if (!document.getElementById(id).checked) incomplete++; });
-
-            const go = document.getElementById('gateGo');
-            const reasonsEl = document.getElementById('gateReasons');
-            if (reasons.length > 0) {
-                go.className = 'gate-go stop'; go.disabled = true;
-                go.textContent = ready ? '🔴 STOP — 진입 불가' : '계산기를 먼저 채우세요';
-                reasonsEl.innerHTML = ready ? ('막힘: ' + reasons.join(' · ')) : '';
-            } else if (incomplete > 0) {
-                go.className = 'gate-go warn'; go.disabled = false;
-                go.textContent = '⚠️ 미완 ' + incomplete + '개 — 그래도 진입';
-                reasonsEl.innerHTML = '경고: 셋업 확인 항목 ' + incomplete + '개 미완 (그래도 진행 가능)';
-            } else {
-                go.className = 'gate-go ok'; go.disabled = false;
-                go.textContent = '✅ 진입 승인';
-                reasonsEl.innerHTML = '';
-            }
-        }
-
-        function approveEntry() {
-            const go = document.getElementById('gateGo');
-            if (go.disabled) return;
-            const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            document.getElementById('gateStampWrap').innerHTML =
-                '<div class="gate-stamp">✅ 진입 승인 · ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + '</div>';
-        }
-
-        function resetGate() {
-            ['gk_sober', 'gk_circuit', 'gk_qtymatch', 'gw_clear', 'gw_fomo', 'gw_euphoria', 'gs_htf', 'gs_edge', 'gs_conf', 'gs_ifthen', 'gs_struct', 'gs_fix']
-                .forEach(id => { document.getElementById(id).checked = false; });
-            document.getElementById('gateStampWrap').innerHTML = '';
+        // ===== 초기화 (모든 입력 리셋) =====
+        function resetAll() {
             SHARED_FIELDS.forEach(id => { document.getElementById(id).value = (id === 'riskPercent' ? '1' : ''); });
             if (currentMode === 'futures') {
                 document.getElementById('futFeePerContract').value = '';
+                document.getElementById('futProduct').selectedIndex = 0;
+                onProductChange();
             } else {
                 document.getElementById('dynamicInput').value = '';
                 document.getElementById('minQtyStep').value = '';
             }
             modeState[currentMode] = {};
-            calculate();
+            clearAllResults();
+            document.getElementById('alertArea').innerHTML = '';
         }
 
         onProductChange();
@@ -1245,3 +936,4 @@
 </body>
 
 </html>
+

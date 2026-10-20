@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v4.4 — 해외선물 전용 (WTI원유 / 골드 / S&P500 / 나스닥100) · 계약당 증거금 · 수수료 비중 경고
+  버전: v4.4.1 — 해외선물 전용 (WTI원유 / 골드 / S&P500 / 나스닥100) · 계약당 증거금 · 수수료 비중 경고 · 입력 5줄 배치
 -->
 <html lang="ko">
 
@@ -312,7 +312,7 @@
         </div>
 
         <div class="grid-inputs">
-            <div class="input-group full-width">
+            <div class="input-group">
                 <label for="totalCapital">전체 시드 (계좌 원금)</label>
                 <input type="text" id="totalCapital" value="" placeholder="예: 70,000" inputmode="decimal"
                     pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
@@ -328,6 +328,13 @@
                 <label for="futFeePerContract">계약당 수수료 (편도·선택)</label>
                 <input type="text" id="futFeePerContract" value="" placeholder="예: 1.5" inputmode="decimal"
                     pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
+            </div>
+
+            <!-- 계약당 증거금 (영웅문 위탁증거금, 선택) — 종목별로 마지막 입력값 기억 -->
+            <div class="input-group">
+                <label for="futMargin">계약당 증거금 ($·선택)</label>
+                <input type="text" id="futMargin" value="" placeholder="예: 850" inputmode="decimal"
+                    pattern="[0-9.,]*" oninput="onMarginInput(this)">
             </div>
 
             <div class="input-group">
@@ -346,14 +353,7 @@
                     oninput="calculate()">
             </div>
 
-            <!-- 계약당 증거금 (영웅문 위탁증거금, 선택) — 종목별로 마지막 입력값 기억 -->
             <div class="input-group">
-                <label for="futMargin">계약당 증거금 ($·선택)</label>
-                <input type="text" id="futMargin" value="" placeholder="예: 850" inputmode="decimal"
-                    pattern="[0-9.,]*" oninput="onMarginInput(this)">
-            </div>
-
-            <div class="input-group full-width">
                 <label for="entryPrice">진입 예정가</label>
                 <input type="text" id="entryPrice" value="" placeholder="진입 예정가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">

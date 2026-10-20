@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v4.3 — 해외선물 전용 (WTI원유 / 골드 / S&P500 / 나스닥100)
+  버전: v4.4 — 해외선물 전용 (WTI원유 / 골드 / S&P500 / 나스닥100) · 계약당 증거금 · 수수료 비중 경고
 -->
 <html lang="ko">
 
@@ -346,7 +346,14 @@
                     oninput="calculate()">
             </div>
 
+            <!-- 계약당 증거금 (영웅문 위탁증거금, 선택) — 종목별로 마지막 입력값 기억 -->
             <div class="input-group">
+                <label for="futMargin">계약당 증거금 ($·선택)</label>
+                <input type="text" id="futMargin" value="" placeholder="예: 850" inputmode="decimal"
+                    pattern="[0-9.,]*" oninput="onMarginInput(this)">
+            </div>
+
+            <div class="input-group full-width">
                 <label for="entryPrice">진입 예정가</label>
                 <input type="text" id="entryPrice" value="" placeholder="진입 예정가" inputmode="decimal" pattern="[0-9.,]*"
                     oninput="formatAndCalculate(this)">
@@ -407,6 +414,10 @@
                 <span class="result-value" id="futNotional">—</span>
             </div>
             <div class="result-row">
+                <span class="result-label">필요 증거금 (Margin)</span>
+                <span class="result-value highlight-navy" id="futMarginTotal">—</span>
+            </div>
+            <div class="result-row">
                 <span class="result-label">수수료 (왕복)</span>
                 <span class="result-value danger" id="futFee">—</span>
             </div>
@@ -420,6 +431,9 @@
     </div>
 
     <script>
+        const MARGIN_WARN_PCT = 50;      // 증거금이 시드의 이 % 이상이면 경고
+        const FEE_SHARE_WARN_PCT = 10;   // 왕복 수수료가 리스크의 이 % 이상이면 경고
+
         let futTick = 0.25;
         let futFrac32 = false;   // 채권(32분수 호가) 모드
 
@@ -463,6 +477,33 @@
             });
         }
 
+        // 계약당 증거금: 종목·사이즈별로 마지막 입력값을 이 브라우저에 기억 (직접입력은 기억 안 함)
+        function marginKey() {
+            const p = document.getElementById('futProduct').value;
+            const sz = document.getElementById('futSize').value;
+            return (p && p !== 'custom' && sz) ? 'futMargin:' + p + ':' + sz : null;
+        }
+
+        function loadMargin() {
+            const k = marginKey();
+            if (!k) return '';
+            try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
+        }
+
+        function saveMargin(val) {
+            const k = marginKey();
+            if (!k) return;
+            try {
+                if (val) localStorage.setItem(k, val); else localStorage.removeItem(k);
+            } catch (e) { /* 저장 불가 환경이면 무시 */ }
+        }
+
+        function onMarginInput(el) {
+            el.value = parseAndFormatInput(el.value).formatted;
+            saveMargin(el.value);
+            calculate();
+        }
+
         function getSpecs(key) {
             const p = PRODUCTS.find(x => x[0] === key);
             return p ? p[2] : [];
@@ -474,7 +515,7 @@
 
         function clearAllResults() {
             ['rrRatio', 'expectedProfit', 'expectedRoi', 'maxLossAmount', 'direction',
-                'futStopDist', 'futContracts', 'futRiskPerC', 'futNotional', 'futFee']
+                'futStopDist', 'futContracts', 'futRiskPerC', 'futNotional', 'futMarginTotal', 'futFee']
                 .forEach(id => { const e = document.getElementById(id); if (e) e.innerText = '—'; });
             document.getElementById('alertArea').innerHTML = '';
         }
@@ -495,6 +536,7 @@
                 sizeSel.innerHTML = '<option value="">—</option>';
                 sizeSel.disabled = true;
                 pvInput.value = '';
+                document.getElementById('futMargin').value = '';
                 futTick = 0;
                 futFrac32 = false;
                 applyPriceMode();
@@ -518,6 +560,7 @@
             const s = specs.find(x => x[0] === sz);
             if (!s) { calculate(); return; }
             document.getElementById('futPointValue').value = parseAndFormatInput(String(s[2])).formatted;
+            document.getElementById('futMargin').value = loadMargin();
             futTick = s[3];
             futFrac32 = !!s[4];
             applyPriceMode();
@@ -649,6 +692,7 @@
             const risk = parseNum(document.getElementById('riskPercent').value);
             const pv = parseNum(document.getElementById('futPointValue').value);
             const feePerSide = parseNum(document.getElementById('futFeePerContract').value);
+            const marginPerC = parseNum(document.getElementById('futMargin').value);
 
             const entryP = readPrice('entryPrice');
             const slP = readPrice('stopLossPrice');
@@ -667,6 +711,7 @@
             const frc = document.getElementById('futRiskPerC');
             const fn = document.getElementById('futNotional');
             const ff = document.getElementById('futFee');
+            const fm = document.getElementById('futMarginTotal');
 
             if (!entryP.valid || !slP.valid || !tpP.valid) {
                 clearAllResults();
@@ -702,6 +747,10 @@
             const feeBreakevenPts = (feePerSide > 0 && pv > 0) ? (2 * feePerSide / pv) : 0;
             const beStr = feeBreakevenPts.toFixed(feeBreakevenPts < 0.01 ? 5 : (feeBreakevenPts < 1 ? 2 : 1));
             const netRisk = actualRisk + totalFee;
+            const totalMargin = marginPerC > 0 ? contracts * marginPerC : 0;
+            const marginPct = account > 0 ? (totalMargin / account) * 100 : 0;
+            const maxContractsByMargin = marginPerC > 0 ? Math.floor(account / marginPerC) : 0;
+            const feeSharePct = (totalFee > 0 && actualRisk > 0) ? (totalFee / actualRisk) * 100 : 0;
             const stopTicks = futTick > 0 ? stopDist / futTick : 0;
             const slPct = (stopDist / entry) * 100;
 
@@ -725,6 +774,15 @@
                     : '$' + formatNum(actualRisk, 2) + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(실제 ' + actualRiskPct.toFixed(2) + '% · 예산 $' + formatNum(riskDollar, 2) + ')</span>';
                 frc.innerText = '$' + formatNum(riskPerContract, 2);
                 fn.innerText = '$' + formatNum(notional, 0);
+            }
+
+            if (belowMin) {
+                fm.innerText = '—';
+            } else if (marginPerC > 0) {
+                fm.innerHTML = (totalMargin > account ? '<span class="danger">' : '<span>') + '$' + formatNum(totalMargin, 0) + '</span>'
+                    + ' <span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(시드의 ' + marginPct.toFixed(1) + '% · $' + formatNum(marginPerC, 0) + ' × ' + contracts + ')</span>';
+            } else {
+                fm.innerHTML = '<span style="font-size:0.7rem;color:var(--text-sub);font-weight:600;">(계약당 증거금 입력 시 표시)</span>';
             }
 
             if (feePerSide > 0 && !belowMin) {
@@ -775,20 +833,41 @@
                 });
             }
 
-            if (isTpValid && totalFee > 0 && !belowMin && netRR < 1.0) {
+            if (!belowMin && totalMargin > account) {
+                alerts.push({
+                    type: 'danger', icon: '🚨',
+                    msg: '<b>증거금 부족 (체결 불가)!</b> ' + contracts + '계약 × $' + formatNum(marginPerC, 0) + ' = $' + formatNum(totalMargin, 0) + '로 시드를 초과합니다. 증거금으로는 <b>최대 ' + maxContractsByMargin + '계약</b>. 해외선물은 레버리지로 증거금을 줄일 수 없으니 계약 수를 줄이거나 손절폭이 넓은 셋업을 쓰세요.'
+                });
+            } else if (!belowMin && totalMargin > 0 && marginPct >= MARGIN_WARN_PCT) {
+                alerts.push({
+                    type: 'warn', icon: '⚠️',
+                    msg: '<b>증거금 사용 ' + marginPct.toFixed(0) + '%</b> — 시드의 절반 이상이 묶입니다. 조금만 밀려도 유지증거금 미달(마진콜) 위험이 있고, 다른 포지션을 잡을 여유가 적습니다. (이미 열린 포지션 증거금은 별도)'
+                });
+            }
+
+            const netRRAlert = isTpValid && totalFee > 0 && !belowMin && netRR < 1.0;
+            if (netRRAlert) {
                 alerts.push({ type: 'warn', icon: '💸', msg: '<b>수수료 반영 손익비 1:' + netRR.toFixed(2) + '</b> — 왕복 수수료($' + formatNum(totalFee, 2) + ')가 수익을 잠식합니다. 손익분기 ' + beStr + 'pt.' });
+            } else if (!belowMin && feeSharePct >= FEE_SHARE_WARN_PCT) {
+                alerts.push({
+                    type: 'warn', icon: '💸',
+                    msg: '<b>수수료가 리스크의 ' + feeSharePct.toFixed(0) + '%</b> — 손절이 좁아 계약 수가 많은 셋업입니다. 실제 손실 $' + formatNum(netRisk, 2) + ' (' + ((netRisk / account) * 100).toFixed(2) + '%)'
+                        + (isTpValid ? ', 순 손익비 1:' + netRR.toFixed(2) : '') + '.'
+                });
             }
 
             if (risk > 5) alerts.push({ type: 'danger', icon: '⚠️', msg: '1회 리스크 ' + risk + '% — 과도합니다. 권장 1~3%(최대 5%).' });
             if (tp > 0 && !isTpValid) alerts.push({ type: 'danger', icon: '🚨', msg: '<b>목표가(TP) 방향 오류!</b> ' + (isLong ? '롱 TP는 진입가보다 높아야' : '숏 TP는 진입가보다 낮아야') + ' 합니다.' });
 
             if (isTpValid) {
-                if (rrRatio < 1.5) alerts.push({ type: 'warn', icon: '⚠️', msg: '<b>손익비 열세 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 1:1.5 미만. 진입 재고.' });
-                else if (rrRatio >= 2.0) alerts.push({ type: 'ok', icon: '🎯', msg: '<b>우수한 손익비 (R:R 1:' + rrRatio.toFixed(2) + ')</b> — 기대수익이 손실의 ' + rrRatio.toFixed(1) + '배!' });
+                const judgeRR = totalFee > 0 ? netRR : rrRatio;
+                const rrTag = totalFee > 0 ? ' · 수수료 반영' : '';
+                if (judgeRR < 1.5) alerts.push({ type: 'warn', icon: '⚠️', msg: '<b>손익비 열세 (R:R 1:' + judgeRR.toFixed(2) + rrTag + ')</b> — 1:1.5 미만. 진입 재고.' });
+                else if (judgeRR >= 2.0) alerts.push({ type: 'ok', icon: '🎯', msg: '<b>우수한 손익비 (R:R 1:' + judgeRR.toFixed(2) + rrTag + ')</b> — 기대수익이 손실의 ' + judgeRR.toFixed(1) + '배!' });
             }
 
             if (alerts.length === 0 && !belowMin) {
-                alerts.push({ type: 'ok', icon: '✅', msg: contracts + '계약 · 실제 리스크 ' + actualRiskPct.toFixed(2) + '% — 안전 범위입니다.' });
+                alerts.push({ type: 'ok', icon: '✅', msg: contracts + '계약 · 실제 리스크 ' + actualRiskPct.toFixed(2) + '%' + (totalMargin > 0 ? ' · 증거금 ' + marginPct.toFixed(1) + '%' : '') + ' — 안전 범위입니다.' });
             }
             renderAlerts(alerts);
 

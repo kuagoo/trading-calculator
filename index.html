@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Trading Risk & Position Calculator
-  버전: v4.4.1 — 해외선물 전용 (WTI원유 / 골드 / S&P500 / 나스닥100) · 계약당 증거금 · 수수료 비중 경고 · 입력 5줄 배치
+  버전: v4.6 — 해외선물 전용 (원유 / 금 / 구리 / S&P500 / 나스닥100 / 다우 / 러셀2000 / 유로FX / 미국채10년) · 종목별 증거금·수수료 기억 · 수수료 비중 경고
 -->
 <html lang="ko">
 
@@ -326,8 +326,8 @@
 
             <div class="input-group">
                 <label for="futFeePerContract">계약당 수수료 (편도·선택)</label>
-                <input type="text" id="futFeePerContract" value="" placeholder="예: 1.5" inputmode="decimal"
-                    pattern="[0-9.,]*" oninput="formatAndCalculate(this)">
+                <input type="text" id="futFeePerContract" value="" placeholder="예: 2" inputmode="decimal"
+                    pattern="[0-9.,]*" oninput="onFeeInput(this)">
             </div>
 
             <!-- 계약당 증거금 (영웅문 위탁증거금, 선택) — 종목별로 마지막 입력값 기억 -->
@@ -449,6 +449,9 @@
                 ['micro', 'MGC (10oz)', 10, 0.10],
                 ['standard', 'GC (100oz)', 100, 0.10]
             ]],
+            ['copper', '구리', [
+                ['micro', 'MHG (2,500lb)', 2500, 0.0005]
+            ]],
             ['sp500', 'S&P 500', [
                 ['micro', 'MES ($5 × 지수)', 5, 0.25],
                 ['emini', 'ES ($50 × 지수)', 50, 0.25]
@@ -456,6 +459,18 @@
             ['nasdaq', '나스닥 100', [
                 ['micro', 'MNQ ($2 × 지수)', 2, 0.25],
                 ['emini', 'NQ ($20 × 지수)', 20, 0.25]
+            ]],
+            ['dow', '다우', [
+                ['micro', 'MYM ($0.5 × 지수)', 0.5, 1]
+            ]],
+            ['russell', '러셀 2000', [
+                ['micro', 'M2K ($5 × 지수)', 5, 0.10]
+            ]],
+            ['euro', '유로 FX', [
+                ['standard', '6E (€125,000)', 125000, 0.00005]
+            ]],
+            ['zn', '미국채 10년 (ZN)', [
+                ['standard', 'ZN ($100K 액면)', 1000, 0.015625, true]
             ]],
             ['custom', '기타 / 직접입력', []]
         ];
@@ -477,21 +492,25 @@
             });
         }
 
-        // 계약당 증거금: 종목·사이즈별로 마지막 입력값을 이 브라우저에 기억 (직접입력은 기억 안 함)
-        function marginKey() {
+        // 수수료 기본값 (아직 입력한 적 없는 종목만): 키움 온라인 편도 기준 — 마이크로 $2, 일반·미니 $7.5
+        const DEFAULT_FEE_MICRO = '2';
+        const DEFAULT_FEE_OTHER = '7.5';
+
+        // 계약당 증거금·수수료: 종목·사이즈별로 마지막 입력값을 이 브라우저에 기억 (직접입력은 기억 안 함)
+        function memKey(prefix) {
             const p = document.getElementById('futProduct').value;
             const sz = document.getElementById('futSize').value;
-            return (p && p !== 'custom' && sz) ? 'futMargin:' + p + ':' + sz : null;
+            return (p && p !== 'custom' && sz) ? prefix + ':' + p + ':' + sz : null;
         }
 
-        function loadMargin() {
-            const k = marginKey();
-            if (!k) return '';
-            try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
+        function loadMem(prefix) {
+            const k = memKey(prefix);
+            if (!k) return null;
+            try { return localStorage.getItem(k); } catch (e) { return null; }
         }
 
-        function saveMargin(val) {
-            const k = marginKey();
+        function saveMem(prefix, val) {
+            const k = memKey(prefix);
             if (!k) return;
             try {
                 if (val) localStorage.setItem(k, val); else localStorage.removeItem(k);
@@ -500,7 +519,13 @@
 
         function onMarginInput(el) {
             el.value = parseAndFormatInput(el.value).formatted;
-            saveMargin(el.value);
+            saveMem('futMargin', el.value);
+            calculate();
+        }
+
+        function onFeeInput(el) {
+            el.value = parseAndFormatInput(el.value).formatted;
+            saveMem('futFee', el.value);
             calculate();
         }
 
@@ -537,6 +562,7 @@
                 sizeSel.disabled = true;
                 pvInput.value = '';
                 document.getElementById('futMargin').value = '';
+                document.getElementById('futFeePerContract').value = '';
                 futTick = 0;
                 futFrac32 = false;
                 applyPriceMode();
@@ -560,7 +586,9 @@
             const s = specs.find(x => x[0] === sz);
             if (!s) { calculate(); return; }
             document.getElementById('futPointValue').value = parseAndFormatInput(String(s[2])).formatted;
-            document.getElementById('futMargin').value = loadMargin();
+            document.getElementById('futMargin').value = loadMem('futMargin') || '';
+            const savedFee = loadMem('futFee');
+            document.getElementById('futFeePerContract').value = savedFee !== null ? savedFee : (sz === 'micro' ? DEFAULT_FEE_MICRO : DEFAULT_FEE_OTHER);
             futTick = s[3];
             futFrac32 = !!s[4];
             applyPriceMode();
@@ -735,7 +763,7 @@
             const riskDollar = account * (risk / 100);
             const riskPerContract = stopDist * pv;
             const contractsExact = riskDollar / riskPerContract;
-            const contracts = Math.floor(contractsExact);
+            const contracts = Math.floor(contractsExact + 1e-9);   // 부동소수점 오차 보정
             const belowMin = contracts < 1;
             const minRiskPct = (riskPerContract / account) * 100;
 
